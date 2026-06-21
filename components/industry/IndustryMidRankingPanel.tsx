@@ -1,12 +1,24 @@
-import { INDUSTRY_RANKING_ROWS } from "@/lib/mock-dashboard-data";
+import type { TableRow } from "@/lib/mock-dashboard-data";
 
-const MAX_VALUE = 3_842_116;
-
-function formatCo2(value: string): number {
-  return Number(value.replace(/,/g, ""));
+function parseCo2(value: string): number {
+  return Number(value.replace(/,/g, "")) || 0;
 }
 
-export function IndustryMidRankingPanel() {
+type IndustryMidRankingPanelProps = {
+  rows: TableRow[];
+};
+
+export function IndustryMidRankingPanel({ rows }: IndustryMidRankingPanelProps) {
+  const maxValue = Math.max(...rows.map((row) => parseCo2(row.value)), 1);
+
+  if (rows.length === 0) {
+    return (
+      <p className="dashboard-empty" role="status">
+        중분류 순위 데이터가 없습니다.
+      </p>
+    );
+  }
+
   return (
     <div className="industry-mid-ranking">
       <table className="industry-mid-ranking__table">
@@ -24,9 +36,9 @@ export function IndustryMidRankingPanel() {
           </tr>
         </thead>
         <tbody>
-          {INDUSTRY_RANKING_ROWS.map((row) => {
-            const numeric = formatCo2(row.value);
-            const widthPct = Math.round((numeric / MAX_VALUE) * 100);
+          {rows.map((row) => {
+            const numeric = parseCo2(row.value);
+            const widthPct = Math.round((numeric / maxValue) * 100);
             return (
               <tr key={row.rank}>
                 <td className="industry-mid-ranking__rank">{row.rank}</td>
@@ -44,7 +56,7 @@ export function IndustryMidRankingPanel() {
                   {row.value}
                   <span className="industry-mid-ranking__unit"> tCO₂eq</span>
                 </td>
-                <td className="industry-mid-ranking__share">▲ {row.change}</td>
+                <td className="industry-mid-ranking__share">{row.change}</td>
               </tr>
             );
           })}

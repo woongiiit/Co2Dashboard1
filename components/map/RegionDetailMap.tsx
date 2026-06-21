@@ -19,9 +19,13 @@ const SELECT_LINE_ID = "region-detail-select-line";
 
 type RegionDetailMapProps = {
   regionLabel: string;
+  carbonByLabel?: Record<string, number>;
 };
 
-export function RegionDetailMap({ regionLabel }: RegionDetailMapProps) {
+export function RegionDetailMap({
+  regionLabel,
+  carbonByLabel,
+}: RegionDetailMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
   const selectedCodeRef = useRef<string>("");
@@ -49,7 +53,7 @@ export function RegionDetailMap({ regionLabel }: RegionDetailMapProps) {
 
     const setupLayers = async () => {
       try {
-        const geojson = await loadMunicipalitiesGeoJson();
+        const geojson = await loadMunicipalitiesGeoJson(carbonByLabel);
         if (cancelled) return;
 
         const selected = findSigunguFeatureByLabel(geojson.features, regionLabel);
@@ -111,7 +115,10 @@ export function RegionDetailMap({ regionLabel }: RegionDetailMapProps) {
         map.setFilter(SELECT_LINE_ID, ["==", ["get", "code"], selectedCodeRef.current]);
 
         if (selected) {
-          setSelectedCo2(selected.properties.co2);
+          const co2 =
+            carbonByLabel?.[regionLabel] ??
+            selected.properties.co2;
+          setSelectedCo2(co2 > 0 ? co2 : null);
           const bounds = getGeometryBounds(selected.geometry);
           if (bounds) {
             map.fitBounds(bounds, { padding: 48, duration: 200, maxZoom: 11 });
@@ -145,7 +152,7 @@ export function RegionDetailMap({ regionLabel }: RegionDetailMapProps) {
       map.remove();
       mapRef.current = null;
     };
-  }, [regionLabel]);
+  }, [regionLabel, carbonByLabel]);
 
   return (
     <div className="region-detail-map__maplibre">

@@ -1,7 +1,7 @@
 import { AiConsultingSection } from "@/components/ai-consulting/AiConsultingSection";
-import { PRIORITY_ACTION_TASKS } from "@/lib/ai-consulting-mock";
+import type { PriorityActionTask } from "@/lib/ai-consulting/types";
 
-function ActionTaskIcon({ id }: { id: "short" | "mid" | "long" }) {
+function ActionTaskIcon({ id }: { id: PriorityActionTask["id"] }) {
   if (id === "short") {
     return (
       <svg viewBox="0 0 28 28" fill="none" aria-hidden="true">
@@ -28,31 +28,53 @@ function ActionTaskIcon({ id }: { id: "short" | "mid" | "long" }) {
   );
 }
 
-export function PriorityActionTasksPanel() {
+const TASK_LABELS: Record<PriorityActionTask["id"], string> = {
+  short: "단기 (~ 1년)",
+  mid: "중기 (1 ~ 3년)",
+  long: "장기 (3년 ~)",
+};
+
+type PriorityActionTasksPanelProps = {
+  tasks: PriorityActionTask[];
+  loading?: boolean;
+};
+
+export function PriorityActionTasksPanel({
+  tasks,
+  loading = false,
+}: PriorityActionTasksPanelProps) {
   return (
     <AiConsultingSection
       number={4}
       title="우선 실행 과제"
       className="ai-consult-grid__actions"
     >
-      <div className="ai-consult-action-grid">
-        {PRIORITY_ACTION_TASKS.map((task) => (
-          <article
-            key={task.id}
-            className={`ai-consult-action-card ai-consult-action-card--${task.id}`}
-          >
-            <span className="ai-consult-action-card__icon" aria-hidden="true">
-              <ActionTaskIcon id={task.id} />
-            </span>
-            <h3 className="ai-consult-action-card__label">{task.label}</h3>
-            <ul className="ai-consult-action-card__list">
-              {task.items.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </article>
-        ))}
-      </div>
+      {loading && tasks.every((task) => task.items.length === 0) ? (
+        <p className="ai-consult-loading" aria-live="polite">
+          AI 실행 과제 생성 중…
+        </p>
+      ) : (
+        <div className="ai-consult-action-grid">
+          {tasks.map((task) => (
+            <article
+              key={task.id}
+              className={`ai-consult-action-card ai-consult-action-card--${task.id}`}
+            >
+              <span className="ai-consult-action-card__icon" aria-hidden="true">
+                <ActionTaskIcon id={task.id} />
+              </span>
+              <h3 className="ai-consult-action-card__label">
+                {task.label || TASK_LABELS[task.id]}
+              </h3>
+              <ul className="ai-consult-action-card__list">
+                {task.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      )}
     </AiConsultingSection>
   );
 }

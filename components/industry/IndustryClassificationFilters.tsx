@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
 import {
   INDUSTRY_MAJOR_OPTIONS,
@@ -9,17 +9,20 @@ import {
 } from "@/lib/industry-classification";
 
 type IndustryClassificationFiltersProps = {
+  majorCode: string;
+  midCode: string;
+  onFiltersChange: (patch: { majorCode?: string; midCode?: string }) => void;
   majorId?: string;
   midId?: string;
 };
 
 export function IndustryClassificationFilters({
+  majorCode,
+  midCode,
+  onFiltersChange,
   majorId = "industry-major",
   midId = "industry-mid",
 }: IndustryClassificationFiltersProps) {
-  const [majorCode, setMajorCode] = useState("all");
-  const [midCode, setMidCode] = useState("all");
-
   const midOptions = useMemo(
     () => getIndustryMidOptionsForMajor(majorCode),
     [majorCode],
@@ -27,9 +30,9 @@ export function IndustryClassificationFilters({
 
   useEffect(() => {
     if (!isMidValidForMajor(majorCode, midCode)) {
-      setMidCode("all");
+      onFiltersChange({ midCode: "all" });
     }
-  }, [majorCode, midCode]);
+  }, [majorCode, midCode, onFiltersChange]);
 
   return (
     <>
@@ -38,14 +41,14 @@ export function IndustryClassificationFilters({
         label="대분류 업종"
         options={INDUSTRY_MAJOR_OPTIONS}
         value={majorCode}
-        onChange={setMajorCode}
+        onChange={(value) => onFiltersChange({ majorCode: value, midCode: "all" })}
       />
       <FilterSelect
         id={midId}
         label="중분류 업종"
         options={midOptions}
         value={midCode}
-        onChange={setMidCode}
+        onChange={(value) => onFiltersChange({ midCode: value })}
       />
     </>
   );

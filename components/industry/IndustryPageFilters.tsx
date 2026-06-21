@@ -1,40 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
+import { FilterPeriodRange } from "@/components/dashboard/FilterPeriodRange";
+import { COMPARE_OPTIONS } from "@/components/dashboard/filter-options";
 import { IndustryClassificationFilters } from "@/components/industry/IndustryClassificationFilters";
 import {
-  DEFAULT_PERIOD_END,
-  DEFAULT_PERIOD_START,
   KOREA_SIDO_OPTIONS,
-  YEAR_MONTH_OPTIONS,
   getSigunguOptionsForSido,
 } from "@/lib/korea-admin-regions";
+import type { IndustryDashboardQuery } from "@/lib/industry-excel/types";
 
-export function IndustryPageFilters() {
-  const [sidoCode, setSidoCode] = useState("all");
-  const [sigunguValue, setSigunguValue] = useState("all");
-  const [periodStart, setPeriodStart] = useState(DEFAULT_PERIOD_START);
-  const [periodEnd, setPeriodEnd] = useState(DEFAULT_PERIOD_END);
+type IndustryPageFiltersProps = {
+  filters: IndustryDashboardQuery;
+  onFiltersChange: (patch: Partial<IndustryDashboardQuery>) => void;
+};
+
+export function IndustryPageFilters({
+  filters,
+  onFiltersChange,
+}: IndustryPageFiltersProps) {
   const sigunguOptions = useMemo(
-    () => getSigunguOptionsForSido(sidoCode),
-    [sidoCode],
-  );
-
-  const endPeriodOptions = useMemo(
-    () => YEAR_MONTH_OPTIONS.filter((option) => option.value >= periodStart),
-    [periodStart],
+    () => getSigunguOptionsForSido(filters.sidoCode),
+    [filters.sidoCode],
   );
 
   useEffect(() => {
-    setSigunguValue("all");
-  }, [sidoCode]);
-
-  useEffect(() => {
-    if (periodEnd < periodStart) {
-      setPeriodEnd(periodStart);
-    }
-  }, [periodStart, periodEnd]);
+    if (filters.regionLabel === "all") return;
+    const valid = sigunguOptions.some(
+      (option) => option.value === filters.regionLabel,
+    );
+    if (!valid) onFiltersChange({ regionLabel: "all" });
+  }, [filters.regionLabel, sigunguOptions, onFiltersChange]);
 
   return (
     <>
@@ -42,8 +39,10 @@ export function IndustryPageFilters() {
         id="industry-sido"
         label="시도"
         options={KOREA_SIDO_OPTIONS}
-        defaultValue="all"
-        onChange={(value) => setSidoCode(value)}
+        value={filters.sidoCode}
+        onChange={(value) =>
+          onFiltersChange({ sidoCode: value, regionLabel: "all" })
+        }
       />
 
       <label className="filter-control">
@@ -51,8 +50,8 @@ export function IndustryPageFilters() {
         <select
           id="industry-sigungu"
           className="filter-control__select"
-          value={sigunguValue}
-          onChange={(e) => setSigunguValue(e.target.value)}
+          value={filters.regionLabel}
+          onChange={(e) => onFiltersChange({ regionLabel: e.target.value })}
         >
           {sigunguOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -61,45 +60,30 @@ export function IndustryPageFilters() {
           ))}
         </select>
       </label>
-      <div className="filter-period-range">
-        <span className="filter-period-range__label">기간</span>
-        <div className="filter-period-range__controls">
-          <label className="filter-control filter-control--inline" htmlFor="industry-period-start">
-            <span className="visually-hidden">시작 연월</span>
-            <select
-              id="industry-period-start"
-              className="filter-control__select"
-              value={periodStart}
-              onChange={(e) => setPeriodStart(e.target.value)}
-            >
-              {YEAR_MONTH_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <span className="filter-period-range__sep" aria-hidden="true">
-            ~
-          </span>
-          <label className="filter-control filter-control--inline" htmlFor="industry-period-end">
-            <span className="visually-hidden">종료 연월</span>
-            <select
-              id="industry-period-end"
-              className="filter-control__select"
-              value={periodEnd}
-              onChange={(e) => setPeriodEnd(e.target.value)}
-            >
-              {endPeriodOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-      <IndustryClassificationFilters />
+
+      <FilterPeriodRange
+        idPrefix="industry-period"
+        start={filters.periodStart}
+        end={filters.periodEnd}
+        onStartChange={(value) => onFiltersChange({ periodStart: value })}
+        onEndChange={(value) => onFiltersChange({ periodEnd: value })}
+      />
+
+      <FilterSelect
+        id="industry-compare"
+        label="비교 기준"
+        options={COMPARE_OPTIONS}
+        value={filters.compare}
+        onChange={(value) =>
+          onFiltersChange({ compare: value === "prev" ? "prev" : "yoy" })
+        }
+      />
+
+      <IndustryClassificationFilters
+        majorCode={filters.majorCode}
+        midCode={filters.midCode}
+        onFiltersChange={(patch) => onFiltersChange(patch)}
+      />
     </>
   );
 }

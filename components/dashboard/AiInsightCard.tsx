@@ -3,6 +3,9 @@ type AiInsightCardProps = {
   items: string[];
   variant?: "default" | "traveler" | "government";
   footer?: string;
+  loading?: boolean;
+  loadingLabel?: string;
+  error?: string | null;
 };
 
 export function AiInsightCard({
@@ -10,6 +13,9 @@ export function AiInsightCard({
   items,
   variant = "default",
   footer,
+  loading = false,
+  loadingLabel = "AI 요약 생성 중…",
+  error = null,
 }: AiInsightCardProps) {
   return (
     <aside className={`ai-insight ai-insight--${variant}`}>
@@ -17,12 +23,24 @@ export function AiInsightCard({
         AI
       </div>
       <h3 className="ai-insight__title">{title}</h3>
-      <ul className="ai-insight__list">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-      {footer ? <p className="ai-insight__footer">{footer}</p> : null}
+
+      {loading ? (
+        <p className="ai-insight__status" role="status">
+          {loadingLabel}
+        </p>
+      ) : error ? (
+        <p className="ai-insight__status ai-insight__status--error" role="alert">
+          {error}
+        </p>
+      ) : (
+        <ul className="ai-insight__list">
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      )}
+
+      {footer && !loading ? <p className="ai-insight__footer">{footer}</p> : null}
     </aside>
   );
 }

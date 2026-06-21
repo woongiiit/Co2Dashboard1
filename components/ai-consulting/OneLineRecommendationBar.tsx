@@ -1,6 +1,14 @@
-import { ONE_LINE_RECOMMENDATION } from "@/lib/ai-consulting-mock";
+type OneLineRecommendationBarProps = {
+  text: string;
+  footer?: string;
+  loading?: boolean;
+};
 
-export function OneLineRecommendationBar() {
+export function OneLineRecommendationBar({
+  text,
+  footer,
+  loading = false,
+}: OneLineRecommendationBarProps) {
   return (
     <div className="ai-consult-oneline" role="note">
       <span className="ai-consult-oneline__icon" aria-hidden="true">
@@ -15,10 +23,13 @@ export function OneLineRecommendationBar() {
           <path d="M10 21h4" stroke="#2563EB" strokeWidth="1.3" strokeLinecap="round" />
         </svg>
       </span>
-      <p className="ai-consult-oneline__text">
-        <strong className="ai-consult-oneline__label">한 줄 제언</strong>
-        {ONE_LINE_RECOMMENDATION}
-      </p>
+      <div>
+        <p className="ai-consult-oneline__text">
+          <strong className="ai-consult-oneline__label">한 줄 제언</strong>
+          {loading && !text ? "AI 한 줄 제언 생성 중…" : text}
+        </p>
+        {footer ? <p className="ai-consult-oneline__meta">{footer}</p> : null}
+      </div>
     </div>
   );
 }

@@ -3,9 +3,22 @@
 import { useMemo } from "react";
 import { EChart } from "@/components/charts/EChart";
 import { buildRegionComparisonOptions } from "@/lib/charts/region-detail-chart-options";
+import type { RegionDetailComparisonItem } from "@/lib/region-excel/types";
 
-export function RegionComparisonChart() {
-  const option = useMemo(() => buildRegionComparisonOptions(), []);
+type RegionComparisonChartProps = {
+  items: RegionDetailComparisonItem[];
+};
+
+export function RegionComparisonChart({ items }: RegionComparisonChartProps) {
+  const option = useMemo(() => buildRegionComparisonOptions(items), [items]);
+
+  if (items.length === 0) {
+    return (
+      <p className="dashboard-empty" role="status">
+        비교 데이터가 없습니다.
+      </p>
+    );
+  }
 
   return (
     <EChart

@@ -3,16 +3,14 @@
 import { useMemo } from "react";
 import { EChart } from "@/components/charts/EChart";
 import { buildRegionMonthlyTrendOptions } from "@/lib/charts/region-detail-chart-options";
+import type { RegionDetailMonthlyTrend } from "@/lib/region-excel/types";
 
 type RegionMonthlyTrendChartProps = {
-  regionLabel: string;
+  trend: RegionDetailMonthlyTrend;
 };
 
-export function RegionMonthlyTrendChart({ regionLabel }: RegionMonthlyTrendChartProps) {
-  const option = useMemo(
-    () => buildRegionMonthlyTrendOptions(regionLabel),
-    [regionLabel],
-  );
+export function RegionMonthlyTrendChart({ trend }: RegionMonthlyTrendChartProps) {
+  const option = useMemo(() => buildRegionMonthlyTrendOptions(trend), [trend]);
 
   return (
     <EChart

@@ -4,20 +4,32 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
 import { FilterPeriodRange } from "@/components/dashboard/FilterPeriodRange";
 import {
+  DEFAULT_PERIOD_END,
+  DEFAULT_PERIOD_START,
   KOREA_SIDO_OPTIONS,
   getSigunguOptionsForSido,
 } from "@/lib/korea-admin-regions";
+import { DEFAULT_AI_CONSULTING_FILTERS } from "@/lib/ai-consulting/client";
 
-const DEFAULT_SIDO = "39";
-const DEFAULT_SIGUNGU = "제주특별자치도 제주시";
+export type AiConsultingFilterState = {
+  sidoCode: string;
+  sigunguValue: string;
+  periodStart: string;
+  periodEnd: string;
+};
 
-export function AiConsultingPageFilters() {
-  const [sidoCode, setSidoCode] = useState(DEFAULT_SIDO);
-  const [sigunguValue, setSigunguValue] = useState(DEFAULT_SIGUNGU);
+type AiConsultingPageFiltersProps = {
+  filters: AiConsultingFilterState;
+  onFiltersChange: (patch: Partial<AiConsultingFilterState>) => void;
+};
 
+export function AiConsultingPageFilters({
+  filters,
+  onFiltersChange,
+}: AiConsultingPageFiltersProps) {
   const sigunguOptions = useMemo(
-    () => getSigunguOptionsForSido(sidoCode),
-    [sidoCode],
+    () => getSigunguOptionsForSido(filters.sidoCode),
+    [filters.sidoCode],
   );
 
   const skipSigunguReset = useRef(true);
@@ -27,8 +39,19 @@ export function AiConsultingPageFilters() {
       skipSigunguReset.current = false;
       return;
     }
-    setSigunguValue("all");
-  }, [sidoCode]);
+    onFiltersChange({ sigunguValue: "all" });
+  }, [filters.sidoCode, onFiltersChange]);
+
+  useEffect(() => {
+    if (filters.sigunguValue === "all") return;
+    const valid = sigunguOptions.some(
+      (option) => option.value === filters.sigunguValue,
+    );
+    if (!valid) {
+      const first = sigunguOptions.find((option) => option.value !== "all");
+      if (first) onFiltersChange({ sigunguValue: first.value });
+    }
+  }, [filters.sigunguValue, sigunguOptions, onFiltersChange]);
 
   return (
     <>
@@ -36,8 +59,8 @@ export function AiConsultingPageFilters() {
         id="ai-sido"
         label="시도"
         options={KOREA_SIDO_OPTIONS}
-        value={sidoCode}
-        onChange={setSidoCode}
+        value={filters.sidoCode}
+        onChange={(value) => onFiltersChange({ sidoCode: value })}
       />
 
       <label className="filter-control">
@@ -45,8 +68,8 @@ export function AiConsultingPageFilters() {
         <select
           id="ai-sigungu"
           className="filter-control__select"
-          value={sigunguValue}
-          onChange={(e) => setSigunguValue(e.target.value)}
+          value={filters.sigunguValue}
+          onChange={(e) => onFiltersChange({ sigunguValue: e.target.value })}
         >
           {sigunguOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -56,7 +79,13 @@ export function AiConsultingPageFilters() {
         </select>
       </label>
 
-      <FilterPeriodRange idPrefix="ai-period" />
+      <FilterPeriodRange
+        idPrefix="ai-period"
+        start={filters.periodStart}
+        end={filters.periodEnd}
+        onStartChange={(value) => onFiltersChange({ periodStart: value })}
+        onEndChange={(value) => onFiltersChange({ periodEnd: value })}
+      />
     </>
   );
 }

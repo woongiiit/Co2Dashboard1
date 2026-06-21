@@ -132,3 +132,36 @@ export const ComparisonRadarChartLazy = dynamic(
     loading: () => <PanelSkeleton variant="chart" />,
   },
 );
+
+export const DeepAnalysisMonthlyTrendChartLazy = dynamic(
+  () =>
+    import("@/components/industry/deep-analysis/DeepAnalysisMonthlyTrendChart").then(
+      (mod) => mod.DeepAnalysisMonthlyTrendChart,
+    ),
+  {
+    ssr: false,
+    loading: () => <PanelSkeleton variant="chart" label="추세 차트 불러오는 중…" />,
+  },
+);
+
+export const DeepAnalysisIndustryCompositionChartLazy = dynamic(
+  () =>
+    import("@/components/industry/deep-analysis/DeepAnalysisIndustryCompositionChart").then(
+      (mod) => mod.DeepAnalysisIndustryCompositionChart,
+    ),
+  {
+    ssr: false,
+    loading: () => <PanelSkeleton variant="chart" />,
+  },
+);
+
+export const DeepAnalysisYoyGrowthChartLazy = dynamic(
+  () =>
+    import("@/components/industry/deep-analysis/DeepAnalysisYoyGrowthChart").then(
+      (mod) => mod.DeepAnalysisYoyGrowthChart,
+    ),
+  {
+    ssr: false,
+    loading: () => <PanelSkeleton variant="chart" />,
+  },
+);

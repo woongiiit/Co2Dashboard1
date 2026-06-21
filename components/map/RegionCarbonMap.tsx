@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import maplibregl, { type MapLayerMouseEvent, type Map as MaplibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { CarbonMapLegend } from "./CarbonMapLegend";
 import {
   DEFAULT_MAP_STYLE,
-  MUNICIPALITIES_GEOJSON_URL,
   buildCarbonFillColorExpression,
   enrichMunicipalitiesGeoJson,
   formatCo2,
+  MUNICIPALITIES_GEOJSON_URL,
   type SigunguGeoFeature,
 } from "@/lib/sigungu-map";
 import { regionDetailPath } from "@/lib/region-routes";
@@ -22,15 +22,21 @@ const HOVER_LAYER_ID = "sigungu-carbon-hover";
 
 type RegionCarbonMapProps = {
   className?: string;
+  carbonByLabel?: Record<string, number>;
 };
 
-export function RegionCarbonMap({ className = "" }: RegionCarbonMapProps) {
+export function RegionCarbonMap({
+  className = "",
+  carbonByLabel,
+}: RegionCarbonMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const fillColorExpression = useMemo(() => buildCarbonFillColorExpression(), []);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -63,7 +69,7 @@ export function RegionCarbonMap({ className = "" }: RegionCarbonMapProps) {
           throw new Error(`GeoJSON 로드 실패 (${response.status})`);
         }
         const raw = await response.json();
-        const geojson = enrichMunicipalitiesGeoJson(raw);
+        const geojson = enrichMunicipalitiesGeoJson(raw, carbonByLabel);
 
         if (cancelled) return;
 
@@ -78,7 +84,7 @@ export function RegionCarbonMap({ className = "" }: RegionCarbonMapProps) {
           type: "fill",
           source: SOURCE_ID,
           paint: {
-            "fill-color": buildCarbonFillColorExpression() as maplibregl.ExpressionSpecification,
+            "fill-color": fillColorExpression as maplibregl.ExpressionSpecification,
             "fill-opacity": 0.82,
           },
         });
@@ -191,6 +197,40 @@ export function RegionCarbonMap({ className = "" }: RegionCarbonMapProps) {
       mapRef.current = null;
     };
   }, [router]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !carbonByLabel || status !== "ready") return;
+
+    let cancelled = false;
+
+    const updateData = async () => {
+      try {
+        const response = await fetch(MUNICIPALITIES_GEOJSON_URL);
+        if (!response.ok) return;
+        const raw = await response.json();
+        const geojson = enrichMunicipalitiesGeoJson(raw, carbonByLabel);
+        if (cancelled) return;
+
+        const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+        source?.setData(geojson);
+
+        map.setPaintProperty(
+          FILL_LAYER_ID,
+          "fill-color",
+          fillColorExpression as maplibregl.ExpressionSpecification,
+        );
+      } catch {
+        // ignore transient update errors
+      }
+    };
+
+    void updateData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [carbonByLabel, status, fillColorExpression]);
 
   return (
     <div className={`carbon-map ${className}`.trim()}>

@@ -3,9 +3,14 @@
 import { useMemo } from "react";
 import { EChart } from "@/components/charts/EChart";
 import { buildComparisonRadarOptions } from "@/lib/charts/ai-consulting-chart-options";
+import type { AiConsultingRadarData } from "@/lib/ai-consulting/types";
 
-export function ComparisonRadarChart() {
-  const option = useMemo(() => buildComparisonRadarOptions(), []);
+type ComparisonRadarChartProps = {
+  radar: AiConsultingRadarData;
+};
+
+export function ComparisonRadarChart({ radar }: ComparisonRadarChartProps) {
+  const option = useMemo(() => buildComparisonRadarOptions(radar), [radar]);
 
   return (
     <div className="ai-consult-radar-chart">

@@ -1,6 +1,18 @@
-import { REGION_TOP_INDUSTRY_ROWS } from "@/lib/region-detail-mock";
+import type { TableRow } from "@/lib/mock-dashboard-data";
 
-export function IndustryRankingTable() {
+type IndustryRankingTableProps = {
+  rows: TableRow[];
+};
+
+export function IndustryRankingTable({ rows }: IndustryRankingTableProps) {
+  if (rows.length === 0) {
+    return (
+      <p className="dashboard-empty" role="status">
+        업종 순위 데이터가 없습니다.
+      </p>
+    );
+  }
+
   return (
     <div className="industry-ranking-table-wrap">
       <table className="industry-ranking-table">
@@ -13,7 +25,7 @@ export function IndustryRankingTable() {
           </tr>
         </thead>
         <tbody>
-          {REGION_TOP_INDUSTRY_ROWS.map((row) => (
+          {rows.map((row) => (
             <tr key={row.rank}>
               <td>{row.rank}</td>
               <td>{row.name}</td>
@@ -21,7 +33,7 @@ export function IndustryRankingTable() {
                 {row.value}
                 <span className="industry-ranking-table__unit"> tCO₂eq</span>
               </td>
-              <td className="industry-ranking-table__share">{row.share}</td>
+              <td className="industry-ranking-table__share">{row.change}</td>
             </tr>
           ))}
         </tbody>

@@ -1,27 +1,61 @@
 import type { EChartsOption } from "echarts";
-import {
-  INDUSTRY_MONTHLY_BY_YEAR,
-  INDUSTRY_MONTHLY_HIGHLIGHT,
-  INDUSTRY_YEAR_META,
-  MAJOR_INDUSTRY_ITEMS,
-  MAJOR_INDUSTRY_MONTHLY_STACKED,
-} from "@/lib/industry-chart-data";
 import { MONTH_LABELS } from "@/lib/charts/monthly-carbon-trend-data";
+import { INDUSTRY_YEAR_META } from "@/lib/industry-chart-data";
+import type {
+  IndustryMajorItem,
+  IndustryMonthlyHighlight,
+} from "@/lib/industry-excel/types";
+import type { RegionTrendSeries } from "@/lib/region-excel/types";
 
 function formatCo2(value: number): string {
   return new Intl.NumberFormat("ko-KR").format(Math.round(value));
 }
 
+/** 관측값 min/max 기준 Y축 — 0 고정 대신 데이터 구간에 맞춰 확대 */
+function computeObservedYAxisRange(values: number[]): {
+  min: number;
+  max: number;
+  interval: number;
+} {
+  if (values.length === 0) {
+    return { min: 0, max: 800_000, interval: 200_000 };
+  }
+
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const span = Math.max(maxValue - minValue, maxValue * 0.02);
+  const padding = span * 0.08;
+
+  const interval = niceTickStep(span + padding * 2, 4);
+  const min = Math.floor((minValue - padding) / interval) * interval;
+  const max = Math.ceil((maxValue + padding) / interval) * interval;
+
+  return { min: Math.max(0, min), max, interval };
+}
+
+function niceTickStep(span: number, targetTicks: number): number {
+  const rough = span / Math.max(1, targetTicks);
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const normalized = rough / magnitude;
+  const niceUnit =
+    normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return niceUnit * magnitude;
+}
+
 export function buildMajorIndustryBarOptions(
+  items: IndustryMajorItem[],
   mode: "absolute" | "percent",
 ): EChartsOption {
-  const names = MAJOR_INDUSTRY_ITEMS.map((i) => i.name);
+  const names = items.map((item) => item.name);
   const values =
     mode === "absolute"
-      ? MAJOR_INDUSTRY_ITEMS.map((i) => i.value)
-      : MAJOR_INDUSTRY_ITEMS.map((i) => i.share);
-
-  const yMax = mode === "absolute" ? 3_500_000 : 40;
+      ? items.map((item) => item.value)
+      : items.map((item) => item.share);
+  const maxValue = Math.max(...items.map((item) => item.value), 1);
+  const yMax =
+    mode === "absolute"
+      ? Math.ceil(maxValue * 1.15 / 100_000) * 100_000
+      : 100;
 
   return {
     grid: { left: 56, right: 16, top: 24, bottom: 48 },
@@ -31,7 +65,8 @@ export function buildMajorIndustryBarOptions(
       formatter: (params: unknown) => {
         if (!Array.isArray(params) || !params[0]) return "";
         const idx = params[0].dataIndex as number;
-        const item = MAJOR_INDUSTRY_ITEMS[idx];
+        const item = items[idx];
+        if (!item) return "";
         return `${item.name}<br/>${formatCo2(item.value)} tCO₂eq (${item.share}%)`;
       },
     },
@@ -46,7 +81,6 @@ export function buildMajorIndustryBarOptions(
       name: mode === "absolute" ? "(tCO₂eq)" : "(%)",
       nameTextStyle: { fontSize: 10, color: "#64748b", padding: [0, 0, 0, 0] },
       max: yMax,
-      interval: mode === "absolute" ? 500_000 : 10,
       axisLabel: {
         fontSize: 10,
         color: "#64748b",
@@ -60,7 +94,7 @@ export function buildMajorIndustryBarOptions(
         type: "bar",
         data: values.map((val, idx) => ({
           value: val,
-          itemStyle: { color: MAJOR_INDUSTRY_ITEMS[idx].color },
+          itemStyle: { color: items[idx]?.color ?? "#2f8f5b" },
         })),
         barWidth: "48%",
         label: {
@@ -70,10 +104,9 @@ export function buildMajorIndustryBarOptions(
           color: "#1f3d2b",
           formatter: (p: unknown) => {
             const param = p as { dataIndex?: number };
-            const item = MAJOR_INDUSTRY_ITEMS[param.dataIndex ?? 0];
-            if (mode === "percent") {
-              return `${item.share}%`;
-            }
+            const item = items[param.dataIndex ?? 0];
+            if (!item) return "";
+            if (mode === "percent") return `${item.share}%`;
             return `${formatCo2(item.value)}\n(${item.share}%)`;
           },
         },
@@ -82,8 +115,15 @@ export function buildMajorIndustryBarOptions(
   };
 }
 
-export function buildIndustryMonthlyTrendOptions(): EChartsOption {
+export function buildIndustryMonthlyTrendOptions(
+  trend: RegionTrendSeries,
+  highlight: IndustryMonthlyHighlight | null,
+): EChartsOption {
   const years = ["2023", "2024", "2025", "2026"] as const;
+  const allValues = years.flatMap((year) =>
+    (trend[year] ?? []).filter((value): value is number => value != null && value > 0),
+  );
+  const { min: yMin, max: yMax, interval } = computeObservedYAxisRange(allValues);
 
   return {
     legend: {
@@ -92,7 +132,7 @@ export function buildIndustryMonthlyTrendOptions(): EChartsOption {
       itemWidth: 16,
       textStyle: { fontSize: 10, color: "#475569" },
     },
-    grid: { left: 48, right: 12, top: 36, bottom: 28 },
+    grid: { left: 56, right: 12, top: 36, bottom: 28 },
     tooltip: { trigger: "axis" },
     xAxis: {
       type: "category",
@@ -102,8 +142,9 @@ export function buildIndustryMonthlyTrendOptions(): EChartsOption {
     },
     yAxis: {
       type: "value",
-      max: 800_000,
-      interval: 200_000,
+      min: yMin,
+      max: yMax,
+      interval,
       axisLabel: {
         fontSize: 10,
         formatter: (v: number) => formatCo2(v),
@@ -116,111 +157,54 @@ export function buildIndustryMonthlyTrendOptions(): EChartsOption {
       return {
         name: meta.label,
         type: "line" as const,
-        data: [...INDUSTRY_MONTHLY_BY_YEAR[year]],
+        data: [...(trend[year] ?? [])],
         connectNulls: false,
         symbol: "circle",
         symbolSize: 5,
         lineStyle: { width: 2, color: meta.color },
         itemStyle: { color: meta.color },
-        markPoint: is2026
-          ? {
-              symbol: "roundRect",
-              symbolSize: [110, 44],
-              symbolOffset: [0, -24],
-              itemStyle: {
-                color: "#fff",
-                borderColor: "#f97316",
-                borderWidth: 1,
-              },
-              label: {
-                show: true,
-                formatter: () =>
-                  `{t|${INDUSTRY_MONTHLY_HIGHLIGHT.label}}\n{v|${formatCo2(INDUSTRY_MONTHLY_HIGHLIGHT.value)} tCO₂eq}`,
-                rich: {
-                  t: { fontSize: 10, color: "#f97316", fontWeight: 600 },
-                  v: { fontSize: 11, color: "#ea580c", fontWeight: 700 },
+        markPoint:
+          is2026 && highlight
+            ? {
+                symbol: "roundRect",
+                symbolSize: [110, 44],
+                symbolOffset: [0, -24],
+                itemStyle: {
+                  color: "#fff",
+                  borderColor: "#f97316",
+                  borderWidth: 1,
                 },
-                padding: [4, 6],
-              },
-              data: [
-                {
-                  name: INDUSTRY_MONTHLY_HIGHLIGHT.label,
-                  coord: [
-                    INDUSTRY_MONTHLY_HIGHLIGHT.monthIndex,
-                    INDUSTRY_MONTHLY_HIGHLIGHT.value,
-                  ],
+                label: {
+                  show: true,
+                  formatter: () =>
+                    `{t|${highlight.label}}\n{v|${formatCo2(highlight.value)} tCO₂eq}`,
+                  rich: {
+                    t: { fontSize: 10, color: "#f97316", fontWeight: 600 },
+                    v: { fontSize: 11, color: "#ea580c", fontWeight: 700 },
+                  },
+                  padding: [4, 6],
                 },
-              ],
-            }
-          : undefined,
+                data: [
+                  {
+                    name: highlight.label,
+                    coord: [highlight.monthIndex, highlight.value],
+                  },
+                ],
+              }
+            : undefined,
       };
     }),
   };
 }
 
-export function buildMajorIndustryStackedOptions(): EChartsOption {
-  return {
-    legend: {
-      top: 0,
-      left: 0,
-      itemWidth: 12,
-      itemHeight: 8,
-      textStyle: { fontSize: 10, color: "#475569" },
-    },
-    grid: { left: 48, right: 12, top: 40, bottom: 28 },
-    tooltip: {
-      trigger: "axis",
-      axisPointer: { type: "shadow" },
-      formatter: (params: unknown) => {
-        if (!Array.isArray(params) || params.length === 0) return "";
-        const month = params[0].axisValue as string;
-        const lines = params
-          .map((p) => {
-            const s = p as { seriesName?: string; value?: number; color?: string };
-            return `${s.seriesName}: ${formatCo2(s.value ?? 0)} tCO₂eq`;
-          })
-          .join("<br/>");
-        const total = params.reduce(
-          (sum, p) => sum + ((p as { value?: number }).value ?? 0),
-          0,
-        );
-        return `${month}<br/>${lines}<br/><b>합계: ${formatCo2(total)} tCO₂eq</b>`;
-      },
-    },
-    xAxis: {
-      type: "category",
-      data: [...MONTH_LABELS],
-      axisLabel: { fontSize: 10, color: "#64748b" },
-      axisTick: { show: false },
-    },
-    yAxis: {
-      type: "value",
-      max: 800_000,
-      interval: 200_000,
-      axisLabel: {
-        fontSize: 10,
-        formatter: (v: number) => formatCo2(v),
-      },
-      splitLine: { lineStyle: { type: "dashed", color: "#f1f5f9" } },
-    },
-    series: MAJOR_INDUSTRY_MONTHLY_STACKED.map((item) => ({
-      name: item.name,
-      type: "bar" as const,
-      stack: "total",
-      emphasis: { focus: "series" as const },
-      barWidth: "52%",
-      itemStyle: { color: item.color },
-      data: [...item.data],
-    })),
-  };
-}
-
-export function buildMajorIndustryTreemapOptions(): EChartsOption {
+export function buildMajorIndustryTreemapOptions(
+  items: IndustryMajorItem[],
+): EChartsOption {
   return {
     tooltip: {
       formatter: (info: unknown) => {
-        const p = info as { name?: string; value?: number; data?: { share?: number } };
-        const item = MAJOR_INDUSTRY_ITEMS.find((i) => i.name === p.name);
+        const p = info as { name?: string };
+        const item = items.find((entry) => entry.name === p.name);
         if (!item) return "";
         return `${item.name}<br/>${formatCo2(item.value)} tCO₂eq<br/>${item.share}%`;
       },
@@ -240,8 +224,8 @@ export function buildMajorIndustryTreemapOptions(): EChartsOption {
         label: {
           show: true,
           formatter: (params: unknown) => {
-            const p = params as { name?: string; data?: { share?: number; value?: number } };
-            const item = MAJOR_INDUSTRY_ITEMS.find((i) => i.name === p.name);
+            const p = params as { name?: string };
+            const item = items.find((entry) => entry.name === p.name);
             if (!item) return "";
             return `{pct|${item.share}%}\n{name|${item.name}}\n{val|${formatCo2(item.value)}}`;
           },
@@ -256,7 +240,7 @@ export function buildMajorIndustryTreemapOptions(): EChartsOption {
           borderWidth: 1,
           gapWidth: 2,
         },
-        data: MAJOR_INDUSTRY_ITEMS.map((item) => ({
+        data: items.map((item) => ({
           name: item.name,
           value: item.value,
           share: item.share,

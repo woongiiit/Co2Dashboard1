@@ -14,19 +14,27 @@ import {
   prefetchRegionDetailBatch,
 } from "@/lib/prefetch-region-detail";
 import { regionDetailPath } from "@/lib/region-routes";
+import type { RegionDashboardQuery } from "@/lib/region-excel/types";
 
-export function RegionPageFilters() {
+type RegionPageFiltersProps = {
+  filters: RegionDashboardQuery;
+  onFiltersChange: (patch: Partial<RegionDashboardQuery>) => void;
+};
+
+export function RegionPageFilters({
+  filters,
+  onFiltersChange,
+}: RegionPageFiltersProps) {
   const router = useRouter();
-  const [sidoCode, setSidoCode] = useState("all");
   const [sigunguValue, setSigunguValue] = useState("all");
   const sigunguOptions = useMemo(
-    () => getSigunguOptionsForSido(sidoCode),
-    [sidoCode],
+    () => getSigunguOptionsForSido(filters.sidoCode),
+    [filters.sidoCode],
   );
 
   useEffect(() => {
     setSigunguValue("all");
-  }, [sidoCode]);
+  }, [filters.sidoCode]);
 
   useEffect(() => {
     const labels = sigunguOptions
@@ -41,8 +49,8 @@ export function RegionPageFilters() {
         id="region-sido"
         label="시도"
         options={KOREA_SIDO_OPTIONS}
-        defaultValue="all"
-        onChange={(value) => setSidoCode(value)}
+        value={filters.sidoCode}
+        onChange={(value) => onFiltersChange({ sidoCode: value })}
       />
 
       <label className="filter-control">
@@ -75,17 +83,38 @@ export function RegionPageFilters() {
         </select>
       </label>
 
-      <FilterPeriodRange idPrefix="region-period" />
+      <FilterPeriodRange
+        idPrefix="region-period"
+        start={filters.periodStart}
+        end={filters.periodEnd}
+        onStartChange={(value) => onFiltersChange({ periodStart: value })}
+        onEndChange={(value) => onFiltersChange({ periodEnd: value })}
+      />
 
       <FilterSelect
         id="region-compare"
         label="비교 기준"
         options={COMPARE_OPTIONS}
+        value={filters.compare}
+        onChange={(value) =>
+          onFiltersChange({
+            compare: value === "prev" ? "prev" : "yoy",
+          })
+        }
       />
       <FilterSelect
         id="region-metric"
         label="탄소 지표"
         options={CARBON_METRIC_OPTIONS}
+        value={filters.metric}
+        onChange={(value) =>
+          onFiltersChange({
+            metric:
+              value === "per-capita" || value === "per-spend"
+                ? value
+                : "total",
+          })
+        }
       />
     </>
   );

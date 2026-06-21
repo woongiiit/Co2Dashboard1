@@ -3,11 +3,29 @@
 import { useMemo, useState } from "react";
 import { EChart } from "@/components/charts/EChart";
 import { buildMajorIndustryBarOptions } from "@/lib/charts/industry-chart-options";
+import type { IndustryMajorItem } from "@/lib/industry-excel/types";
 import { ChartModeToggle } from "./ChartModeToggle";
 
-export function MajorIndustryComparisonChart() {
+type MajorIndustryComparisonChartProps = {
+  items: IndustryMajorItem[];
+};
+
+export function MajorIndustryComparisonChart({
+  items,
+}: MajorIndustryComparisonChartProps) {
   const [mode, setMode] = useState<"absolute" | "percent">("absolute");
-  const option = useMemo(() => buildMajorIndustryBarOptions(mode), [mode]);
+  const option = useMemo(
+    () => buildMajorIndustryBarOptions(items, mode),
+    [items, mode],
+  );
+
+  if (items.length === 0) {
+    return (
+      <p className="dashboard-empty" role="status">
+        업종 비교 데이터가 없습니다.
+      </p>
+    );
+  }
 
   return (
     <div className="industry-chart-panel">

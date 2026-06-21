@@ -2,12 +2,25 @@
 
 import { useState } from "react";
 import { RegionDetailMap } from "@/components/map/RegionDetailMap";
+import { formatInteger } from "@/lib/region-excel/format";
 
 type RegionDetailMapPanelProps = {
   regionLabel: string;
+  periodLabel: string;
+  mapValue: number;
+  nationalRank?: string;
+  nationalRankHint?: string;
+  carbonByLabel?: Record<string, number>;
 };
 
-export function RegionDetailMapPanel({ regionLabel }: RegionDetailMapPanelProps) {
+export function RegionDetailMapPanel({
+  regionLabel,
+  periodLabel,
+  mapValue,
+  nationalRank,
+  nationalRankHint,
+  carbonByLabel,
+}: RegionDetailMapPanelProps) {
   const [view, setView] = useState<"map" | "info">("map");
 
   return (
@@ -44,7 +57,7 @@ export function RegionDetailMapPanel({ regionLabel }: RegionDetailMapPanelProps)
       </div>
 
       {view === "map" ? (
-        <RegionDetailMap regionLabel={regionLabel} />
+        <RegionDetailMap regionLabel={regionLabel} carbonByLabel={carbonByLabel} />
       ) : (
         <dl className="region-detail-map__info">
           <div>
@@ -53,16 +66,20 @@ export function RegionDetailMapPanel({ regionLabel }: RegionDetailMapPanelProps)
           </div>
           <div>
             <dt>기준 기간</dt>
-            <dd>2023.01 ~ 2026.04</dd>
+            <dd>{periodLabel}</dd>
           </div>
           <div>
             <dt>총 관광 탄소발자국</dt>
-            <dd>412,875 tCO₂eq</dd>
+            <dd>{formatInteger(mapValue)} tCO₂eq</dd>
           </div>
-          <div>
-            <dt>전국 순위</dt>
-            <dd>28위 / 250개 시군구</dd>
-          </div>
+          {nationalRank && nationalRankHint ? (
+            <div>
+              <dt>전국 순위</dt>
+              <dd>
+                {nationalRank}위 / {nationalRankHint}
+              </dd>
+            </div>
+          ) : null}
         </dl>
       )}
     </div>

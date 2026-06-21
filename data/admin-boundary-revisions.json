@@ -1,0 +1,62 @@
+{
+  "formatVersion": 1,
+  "description": "시군구 통합·분할·관할 변경 개정 이력 (지역중심분석 집계 기준)",
+  "revisions": [
+    {
+      "id": "gunwi-jurisdiction-2023",
+      "effectiveYm": "2023-07",
+      "type": "jurisdiction_transfer",
+      "title": "군위군 관할 변경",
+      "summary": "경상북도 군위군 → 대구광역시 군위군 (2023.7.1)",
+      "from": { "sidoNm": "경상북도", "sggNm": "군위군" },
+      "to": { "sidoNm": "대구광역시", "sggNm": "군위군" },
+      "stableRegionId": "gunwi-gun"
+    },
+    {
+      "id": "bucheon-split-2024",
+      "effectiveYm": "2024-01",
+      "type": "split",
+      "title": "부천시 구 신설",
+      "summary": "부천시(일반구 없음) → 원미·소사·오정구 (2024.1.1)",
+      "parent": { "sidoNm": "경기도", "sggNm": "부천시" },
+      "children": [
+        { "sidoNm": "경기도", "sggNm": "부천시 원미구" },
+        { "sidoNm": "경기도", "sggNm": "부천시 소사구" },
+        { "sidoNm": "경기도", "sggNm": "부천시 오정구" }
+      ]
+    },
+    {
+      "id": "hwaseong-split-2026",
+      "effectiveYm": "2026-02",
+      "type": "split",
+      "title": "화성시 구 신설",
+      "summary": "화성시(일반구 없음) → 만세·효행·병점·동탄구 (2026.2.1)",
+      "parent": { "sidoNm": "경기도", "sggNm": "화성시" },
+      "children": [
+        { "sidoNm": "경기도", "sggNm": "화성시 만세구" },
+        { "sidoNm": "경기도", "sggNm": "화성시 효행구" },
+        { "sidoNm": "경기도", "sggNm": "화성시 병점구" },
+        { "sidoNm": "경기도", "sggNm": "화성시 동탄구" }
+      ]
+    },
+    {
+      "id": "incheon-reorg-2026",
+      "effectiveYm": "2026-07",
+      "type": "merge_split",
+      "scheduled": true,
+      "title": "인천광역시 자치구 개편",
+      "summary": "중·동·서구 → 제물포·영종·서해·검단구 (2026.7.1 예정)",
+      "fromUnits": [
+        { "sidoNm": "인천광역시", "sggNm": "중구" },
+        { "sidoNm": "인천광역시", "sggNm": "동구" },
+        { "sidoNm": "인천광역시", "sggNm": "서구" }
+      ],
+      "toUnits": [
+        { "sidoNm": "인천광역시", "sggNm": "제물포구" },
+        { "sidoNm": "인천광역시", "sggNm": "영종구" },
+        { "sidoNm": "인천광역시", "sggNm": "서해구" },
+        { "sidoNm": "인천광역시", "sggNm": "검단구" }
+      ]
+    }
+  ]
+}

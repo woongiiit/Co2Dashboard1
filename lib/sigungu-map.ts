@@ -32,16 +32,52 @@ export type SigunguGeoProperties = {
 
 export type SigunguGeoFeature = Feature<Geometry, SigunguGeoProperties>;
 
-export const CARBON_LEGEND_STOPS = [
-  { min: 500_000, label: "500,000 이상", color: "#b91c1c" },
-  { min: 200_000, label: "200,000 – 500,000", color: "#ea580c" },
-  { min: 100_000, label: "100,000 – 200,000", color: "#fb923c" },
-  { min: 50_000, label: "50,000 – 100,000", color: "#facc15" },
-  { min: 20_000, label: "20,000 – 50,000", color: "#86efac" },
-  { min: 0, label: "20,000 미만", color: "#22c55e" },
+export const MAP_NO_DATA_COLOR = "#d1d5db";
+
+/** 파란색 단일 계열 — 값이 클수록 진한 톤 */
+export const CARBON_BLUE_TONES = [
+  "#dbeafe",
+  "#bfdbfe",
+  "#60a5fa",
+  "#2563eb",
+  "#1e3a8a",
 ] as const;
 
-export const MAP_NO_DATA_COLOR = "#d1d5db";
+/** 권장 범례 임계치 (tCO₂eq) — 2~5구간 하한값 */
+export const CARBON_MAP_THRESHOLDS = [
+  700_000,
+  2_000_000,
+  4_700_000,
+  8_200_000,
+] as const;
+
+export const CARBON_LEGEND_STOPS = [
+  {
+    min: 0,
+    label: "0 – 700,000",
+    color: CARBON_BLUE_TONES[0],
+  },
+  {
+    min: CARBON_MAP_THRESHOLDS[0],
+    label: "700,000 – 2,000,000",
+    color: CARBON_BLUE_TONES[1],
+  },
+  {
+    min: CARBON_MAP_THRESHOLDS[1],
+    label: "2,000,000 – 4,700,000",
+    color: CARBON_BLUE_TONES[2],
+  },
+  {
+    min: CARBON_MAP_THRESHOLDS[2],
+    label: "4,700,000 – 8,200,000",
+    color: CARBON_BLUE_TONES[3],
+  },
+  {
+    min: CARBON_MAP_THRESHOLDS[3],
+    label: "8,200,000 이상",
+    color: CARBON_BLUE_TONES[4],
+  },
+];
 
 export const DEFAULT_MAP_STYLE =
   process.env.NEXT_PUBLIC_MAP_STYLE_URL ??
@@ -78,12 +114,15 @@ export function mockCarbonForCode(code: string): number {
 
 export function enrichMunicipalitiesGeoJson(
   collection: FeatureCollection,
+  co2ByLabel?: Record<string, number>,
 ): FeatureCollection<Geometry, SigunguGeoProperties> {
   const features = collection.features.map((feature) => {
     const props = feature.properties ?? {};
     const code = String(props.code ?? "");
     const name = String(props.name ?? "");
-    const co2 = mockCarbonForCode(code);
+    const label = buildSigunguLabel(code, name);
+    const co2 =
+      co2ByLabel != null ? (co2ByLabel[label] ?? 0) : mockCarbonForCode(code);
 
     return {
       ...feature,
@@ -93,7 +132,7 @@ export function enrichMunicipalitiesGeoJson(
         name_eng: props.name_eng ? String(props.name_eng) : undefined,
         base_year: props.base_year ? String(props.base_year) : undefined,
         co2,
-        label: buildSigunguLabel(code, name),
+        label,
       },
     };
   });
@@ -104,23 +143,31 @@ export function enrichMunicipalitiesGeoJson(
   } as FeatureCollection<Geometry, SigunguGeoProperties>;
 }
 
-/** MapLibre fill-color step expression (co2 property) */
+/** MapLibre fill-color — co2=0은 데이터 없음, 그 외 권장 5단계 파란 톤 */
 export function buildCarbonFillColorExpression(): unknown[] {
   return [
-    "step",
-    ["get", "co2"],
+    "case",
+    ["==", ["get", "co2"], 0],
     MAP_NO_DATA_COLOR,
-    20_000,
-    "#22c55e",
-    50_000,
-    "#86efac",
-    100_000,
-    "#facc15",
-    200_000,
-    "#fb923c",
-    500_000,
-    "#b91c1c",
+    [
+      "step",
+      ["get", "co2"],
+      CARBON_BLUE_TONES[0],
+      CARBON_MAP_THRESHOLDS[0],
+      CARBON_BLUE_TONES[1],
+      CARBON_MAP_THRESHOLDS[1],
+      CARBON_BLUE_TONES[2],
+      CARBON_MAP_THRESHOLDS[2],
+      CARBON_BLUE_TONES[3],
+      CARBON_MAP_THRESHOLDS[3],
+      CARBON_BLUE_TONES[4],
+    ],
   ];
+}
+
+/** @deprecated 고정 범례 사용 — CARBON_LEGEND_STOPS 반환 */
+export function buildLegendStopsFromMax(_maxCo2?: number) {
+  return [...CARBON_LEGEND_STOPS];
 }
 
 export function formatCo2(value: number): string {
@@ -131,18 +178,27 @@ let municipalitiesCache: Promise<
   FeatureCollection<Geometry, SigunguGeoProperties>
 > | null = null;
 
-export function loadMunicipalitiesGeoJson(): Promise<
-  FeatureCollection<Geometry, SigunguGeoProperties>
-> {
-  if (!municipalitiesCache) {
-    municipalitiesCache = fetch(MUNICIPALITIES_GEOJSON_URL)
-      .then((res) => {
-        if (!res.ok) throw new Error(`GeoJSON 로드 실패 (${res.status})`);
-        return res.json();
-      })
-      .then((raw) => enrichMunicipalitiesGeoJson(raw));
+export function loadMunicipalitiesGeoJson(
+  co2ByLabel?: Record<string, number>,
+): Promise<FeatureCollection<Geometry, SigunguGeoProperties>> {
+  if (!co2ByLabel) {
+    if (!municipalitiesCache) {
+      municipalitiesCache = fetch(MUNICIPALITIES_GEOJSON_URL)
+        .then((res) => {
+          if (!res.ok) throw new Error(`GeoJSON 로드 실패 (${res.status})`);
+          return res.json();
+        })
+        .then((raw) => enrichMunicipalitiesGeoJson(raw));
+    }
+    return municipalitiesCache;
   }
-  return municipalitiesCache;
+
+  return fetch(MUNICIPALITIES_GEOJSON_URL)
+    .then((res) => {
+      if (!res.ok) throw new Error(`GeoJSON 로드 실패 (${res.status})`);
+      return res.json();
+    })
+    .then((raw) => enrichMunicipalitiesGeoJson(raw, co2ByLabel));
 }
 
 type LngLatBoundsLike = [[number, number], [number, number]];

@@ -10,11 +10,24 @@ import {
 type FilterPeriodRangeProps = {
   /** Unique prefix for select ids, e.g. `region-period` → `region-period-start` */
   idPrefix: string;
+  start?: string;
+  end?: string;
+  onStartChange?: (value: string) => void;
+  onEndChange?: (value: string) => void;
 };
 
-export function FilterPeriodRange({ idPrefix }: FilterPeriodRangeProps) {
-  const [periodStart, setPeriodStart] = useState(DEFAULT_PERIOD_START);
-  const [periodEnd, setPeriodEnd] = useState(DEFAULT_PERIOD_END);
+export function FilterPeriodRange({
+  idPrefix,
+  start,
+  end,
+  onStartChange,
+  onEndChange,
+}: FilterPeriodRangeProps) {
+  const [internalStart, setInternalStart] = useState(DEFAULT_PERIOD_START);
+  const [internalEnd, setInternalEnd] = useState(DEFAULT_PERIOD_END);
+
+  const periodStart = start ?? internalStart;
+  const periodEnd = end ?? internalEnd;
 
   const endPeriodOptions = useMemo(
     () =>
@@ -24,9 +37,10 @@ export function FilterPeriodRange({ idPrefix }: FilterPeriodRangeProps) {
 
   useEffect(() => {
     if (periodEnd < periodStart) {
-      setPeriodEnd(periodStart);
+      if (onEndChange) onEndChange(periodStart);
+      else setInternalEnd(periodStart);
     }
-  }, [periodStart, periodEnd]);
+  }, [periodStart, periodEnd, onEndChange]);
 
   const startId = `${idPrefix}-start`;
   const endId = `${idPrefix}-end`;
@@ -41,7 +55,11 @@ export function FilterPeriodRange({ idPrefix }: FilterPeriodRangeProps) {
             id={startId}
             className="filter-control__select"
             value={periodStart}
-            onChange={(e) => setPeriodStart(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (onStartChange) onStartChange(value);
+              else setInternalStart(value);
+            }}
           >
             {YEAR_MONTH_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -59,7 +77,11 @@ export function FilterPeriodRange({ idPrefix }: FilterPeriodRangeProps) {
             id={endId}
             className="filter-control__select"
             value={periodEnd}
-            onChange={(e) => setPeriodEnd(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (onEndChange) onEndChange(value);
+              else setInternalEnd(value);
+            }}
           >
             {endPeriodOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>

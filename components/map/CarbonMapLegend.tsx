@@ -1,11 +1,21 @@
 import { CARBON_LEGEND_STOPS, MAP_NO_DATA_COLOR } from "@/lib/sigungu-map";
 
-export function CarbonMapLegend() {
+type LegendStop = {
+  min: number;
+  label: string;
+  color: string;
+};
+
+type CarbonMapLegendProps = {
+  stops?: LegendStop[];
+};
+
+export function CarbonMapLegend({ stops = [...CARBON_LEGEND_STOPS] }: CarbonMapLegendProps) {
   return (
     <div className="carbon-map-legend" aria-label="총 관광 탄소발자국 범례">
       <p className="carbon-map-legend__title">총 관광 탄소발자국 (tCO₂eq)</p>
       <ul className="carbon-map-legend__list">
-        {CARBON_LEGEND_STOPS.map((stop) => (
+        {stops.map((stop) => (
           <li key={stop.label}>
             <span
               className="carbon-map-legend__swatch"

@@ -1,17 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
-import { EChart } from "@/components/charts/EChart";
-import { buildMajorIndustryStackedOptions } from "@/lib/charts/industry-chart-options";
+import type { IndustryMajorItem } from "@/lib/industry-excel/types";
 
-export function MajorIndustryStackedChart() {
-  const option = useMemo(() => buildMajorIndustryStackedOptions(), []);
+type MajorIndustryStackedChartProps = {
+  items?: IndustryMajorItem[];
+};
 
+/** 스택 차트는 현재 대시보드 그리드에서 미사용 — API 연동 시 확장 */
+export function MajorIndustryStackedChart(_props: MajorIndustryStackedChartProps) {
   return (
-    <EChart
-      option={option}
-      height={260}
-      ariaLabel="6대 업종 월별 탄소발자국 구성 스택 차트"
-    />
+    <p className="dashboard-empty" role="status">
+      스택 차트 데이터가 없습니다.
+    </p>
   );
 }

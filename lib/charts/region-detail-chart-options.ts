@@ -1,8 +1,9 @@
 import type { EChartsOption } from "echarts";
-import {
-  REGION_COMPARISON_ITEMS,
-  REGION_INDUSTRY_COMPOSITION,
-} from "@/lib/region-detail-mock";
+import type {
+  RegionDetailComparisonItem,
+  RegionDetailIndustryShare,
+  RegionDetailMonthlyTrend,
+} from "@/lib/region-excel/types";
 
 const PIE_COLORS = [
   "#2f8f5b",
@@ -17,7 +18,9 @@ function formatCo2(value: number): string {
   return new Intl.NumberFormat("ko-KR").format(value);
 }
 
-export function buildIndustryCompositionOptions(): EChartsOption {
+export function buildIndustryCompositionOptions(
+  items: RegionDetailIndustryShare[],
+): EChartsOption {
   return {
     color: PIE_COLORS,
     tooltip: {
@@ -34,7 +37,7 @@ export function buildIndustryCompositionOptions(): EChartsOption {
         center: ["50%", "50%"],
         avoidLabelOverlap: true,
         label: { show: false },
-        data: REGION_INDUSTRY_COMPOSITION.map((item) => ({
+        data: items.map((item) => ({
           name: item.name,
           value: item.value,
         })),
@@ -43,9 +46,12 @@ export function buildIndustryCompositionOptions(): EChartsOption {
   };
 }
 
-export function buildRegionComparisonOptions(): EChartsOption {
-  const labels = REGION_COMPARISON_ITEMS.map((i) => i.label).reverse();
-  const values = REGION_COMPARISON_ITEMS.map((i) => i.value).reverse();
+export function buildRegionComparisonOptions(
+  items: RegionDetailComparisonItem[],
+): EChartsOption {
+  const labels = items.map((item) => item.label).reverse();
+  const values = items.map((item) => item.value).reverse();
+  const maxValue = Math.max(...items.map((item) => item.value), 1);
 
   return {
     grid: { left: 8, right: 72, top: 8, bottom: 8, containLabel: true },
@@ -55,14 +61,15 @@ export function buildRegionComparisonOptions(): EChartsOption {
       formatter: (params: unknown) => {
         if (!Array.isArray(params) || !params[0]) return "";
         const idx = params[0].dataIndex as number;
-        const item = REGION_COMPARISON_ITEMS[REGION_COMPARISON_ITEMS.length - 1 - idx];
+        const item = items[items.length - 1 - idx];
+        if (!item) return "";
         const arrow = item.changeDirection === "up" ? "▲" : "▼";
         return `${item.label}<br/>${formatCo2(item.value)} tCO₂eq<br/>${arrow} ${item.changePercent}%`;
       },
     },
     xAxis: {
       type: "value",
-      max: 500_000,
+      max: Math.ceil(maxValue * 1.15),
       axisLabel: {
         fontSize: 10,
         color: "#64748b",
@@ -89,10 +96,9 @@ export function buildRegionComparisonOptions(): EChartsOption {
           fontSize: 10,
           formatter: (p: { dataIndex?: number }) => {
             const idx = p.dataIndex ?? 0;
-            const item =
-              REGION_COMPARISON_ITEMS[REGION_COMPARISON_ITEMS.length - 1 - idx];
+            const item = items[items.length - 1 - idx];
+            if (!item) return "";
             const arrow = item.changeDirection === "up" ? "▲" : "▼";
-            const color = item.changeDirection === "up" ? "#dc2626" : "#16a34a";
             return `{val|${formatCo2(item.value)}}\n{chg|${arrow} ${item.changePercent}%}`;
           },
           rich: {
@@ -105,32 +111,19 @@ export function buildRegionComparisonOptions(): EChartsOption {
   };
 }
 
-/** Regional monthly trend — mock series for detail page */
 export function buildRegionMonthlyTrendOptions(
-  regionName: string,
+  trend: RegionDetailMonthlyTrend,
 ): EChartsOption {
-  const months = [
-    "1월",
-    "2월",
-    "3월",
-    "4월",
-    "5월",
-    "6월",
-    "7월",
-    "8월",
-    "9월",
-    "10월",
-    "11월",
-    "12월",
-  ];
+  const allValues = [
+    ...trend.selected,
+    ...trend.prevYearSameMonth,
+    ...trend.nationalAvg,
+    ...trend.sidoAvg,
+  ].filter((value): value is number => value != null && value > 0);
 
-  const selected = [
-    42_000, 38_000, 45_000, 48_000, 52_000, 58_000, 68_000, 60_842, 55_000, 48_000,
-    44_000, 40_000,
-  ];
-  const prevYear = selected.map((v) => Math.round(v * 0.88));
-  const national = selected.map((v) => Math.round(v * 1.15));
-  const sido = selected.map((v) => Math.round(v * 1.05));
+  const maxValue = allValues.length > 0 ? Math.max(...allValues) : 80_000;
+  const yMax = Math.ceil(maxValue * 1.2 / 10_000) * 10_000;
+  const interval = Math.max(10_000, Math.ceil(yMax / 4 / 10_000) * 10_000);
 
   return {
     legend: {
@@ -143,14 +136,14 @@ export function buildRegionMonthlyTrendOptions(
     tooltip: { trigger: "axis" },
     xAxis: {
       type: "category",
-      data: months,
+      data: trend.months,
       boundaryGap: false,
       axisLabel: { fontSize: 10, color: "#64748b" },
     },
     yAxis: {
       type: "value",
-      max: 80_000,
-      interval: 20_000,
+      max: yMax,
+      interval,
       axisLabel: {
         fontSize: 10,
         formatter: (v: number) => formatCo2(v),
@@ -159,9 +152,9 @@ export function buildRegionMonthlyTrendOptions(
     },
     series: [
       {
-        name: regionName,
+        name: trend.seriesLabels.selected,
         type: "line",
-        data: selected,
+        data: trend.selected,
         symbol: "circle",
         symbolSize: 5,
         lineStyle: { width: 2, color: "#2f8f5b" },
@@ -170,7 +163,7 @@ export function buildRegionMonthlyTrendOptions(
       {
         name: "전년(동월)",
         type: "line",
-        data: prevYear,
+        data: trend.prevYearSameMonth,
         symbol: "circle",
         symbolSize: 4,
         lineStyle: { width: 1.5, type: "dashed", color: "#94a3b8" },
@@ -179,14 +172,14 @@ export function buildRegionMonthlyTrendOptions(
       {
         name: "전국 평균",
         type: "line",
-        data: national,
+        data: trend.nationalAvg,
         symbol: "none",
         lineStyle: { width: 1.5, color: "#4ade80" },
       },
       {
-        name: "강원도 평균",
+        name: trend.seriesLabels.sido,
         type: "line",
-        data: sido,
+        data: trend.sidoAvg,
         symbol: "none",
         lineStyle: { width: 1.5, color: "#f97316" },
       },
