@@ -2788,6 +2788,14 @@ a {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(12px, 1.5vw, 18px);
+  align-items: stretch;
+}
+
+.calc-guide-dialog__bottom-stack {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.2vw, 14px);
+  min-height: 100%;
 }
 
 .calc-guide-section__title {
@@ -2797,6 +2805,12 @@ a {
   font-weight: 700;
   letter-spacing: -0.02em;
   color: #1f3d2b;
+}
+
+.calc-guide-scope .calc-guide-section__title,
+.calc-guide-boundary .calc-guide-section__title {
+  margin-bottom: 8px;
+  font-size: clamp(14px, 1.4vw, 16px);
 }
 
 .calc-guide-card {
@@ -2966,17 +2980,119 @@ a {
 }
 
 .calc-guide-scope,
-.calc-guide-faq {
-  padding: clamp(14px, 1.6vw, 18px);
+.calc-guide-faq,
+.calc-guide-boundary {
+  padding: clamp(12px, 1.4vw, 16px);
   border-radius: 14px;
   border: 1px solid #d4eedc;
   background: #fff;
 }
 
 .calc-guide-scope {
+  flex: 0 0 auto;
+}
+
+.calc-guide-boundary {
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.calc-guide-boundary__intro {
+  margin: 0 0 10px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: -0.02em;
+  color: #55735f;
+  word-break: keep-all;
+}
+
+.calc-guide-boundary__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.calc-guide-boundary__item {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f4fbf7;
+}
+
+.calc-guide-boundary__item-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.calc-guide-boundary__ym {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e8f8ef;
+  font-family: "Pretendard", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2f8f5b;
+}
+
+.calc-guide-boundary__item-title {
+  font-family: "Pretendard", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1f3d2b;
+}
+
+.calc-guide-boundary__summary {
+  margin: 0;
+  font-family: "Pretendard", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  color: #7a9484;
+  word-break: keep-all;
+}
+
+.calc-guide-boundary__policy {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #d4eedc;
+}
+
+.calc-guide-boundary__policy-title {
+  margin: 0 0 6px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #2f8f5b;
+}
+
+.calc-guide-boundary__policy-list {
+  margin: 0;
+  padding-left: 1.1em;
+  font-family: "Pretendard", sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: -0.02em;
+  color: #55735f;
+  word-break: keep-all;
+}
+
+.calc-guide-boundary__policy-list li + li {
+  margin-top: 4px;
 }
 
 .calc-guide-scope__list {
@@ -2992,8 +3108,8 @@ a {
 .calc-guide-scope__item {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px;
+  gap: 2px;
+  padding: 8px 6px;
   border-radius: 10px;
   background: #f4fbf7;
   text-align: center;
@@ -3016,11 +3132,9 @@ a {
 }
 
 .calc-guide-scope__actions {
-  flex: 1;
+  margin-top: 10px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  min-height: 0;
   padding: 0;
 }
 
@@ -3029,14 +3143,14 @@ a {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-width: min(100%, 240px);
-  padding: 12px 20px;
+  min-width: min(100%, 220px);
+  padding: 10px 16px;
   border: 2px solid #82dcb4;
   border-radius: 12px;
   background: linear-gradient(180deg, #f4fbf7 0%, #e8f8ef 100%);
   color: #1f3d2b;
   font-family: "Pretendard", sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: -0.02em;
   cursor: pointer;
@@ -3149,6 +3263,10 @@ a {
   .calc-guide-dialog__intro-row,
   .calc-guide-dialog__bottom {
     grid-template-columns: 1fr;
+  }
+
+  .calc-guide-dialog__bottom-stack {
+    min-height: 0;
   }
 
   .calc-guide-flow__list {

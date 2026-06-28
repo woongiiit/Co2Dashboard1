@@ -5,6 +5,14 @@ import {
   COVER_HELP_ICON_SRC,
   REGION_SOURCE_EXCEL_DOWNLOAD_PATH,
 } from "@/lib/cover-help";
+import { ADMIN_BOUNDARY_REVISIONS } from "@/lib/region-excel/admin-boundary-registry";
+
+const BOUNDARY_POLICY = [
+  "KPI·월별 추세: 각 월에 유효한 행정단위만 합산해 개정 전·후 이중 집계를 방지합니다.",
+  "지도·순위·시군구 수: 선택 기간 종료월 시점의 행정 경계를 기준으로 표시합니다.",
+  "관할 변경(군위군): 개정 전후 데이터를 동일 지역으로 연결해 비교·순위에 반영합니다.",
+  "전년 대비·기간 비교: 분할·통합이 포함되면 비교 신뢰도가 제한되며, 화면·API에서 안내합니다.",
+] as const;
 
 const FLOW_STEPS = [
   {
@@ -344,18 +352,59 @@ export function CoverCalculationGuideDialog({
           </div>
 
           <div className="calc-guide-dialog__bottom">
-            <section className="calc-guide-scope" aria-label="데이터 범위">
-              <h3 className="calc-guide-section__title">데이터 범위</h3>
-              <ul className="calc-guide-scope__list">
-                {DATA_SCOPE.map((item) => (
-                  <li key={item.label} className="calc-guide-scope__item">
-                    <span className="calc-guide-scope__label">{item.label}</span>
-                    <span className="calc-guide-scope__value">{item.value}</span>
-                  </li>
-                ))}
-              </ul>
-              <DataScopeDownloadButton className="calc-guide-scope__actions" />
-            </section>
+            <div className="calc-guide-dialog__bottom-stack">
+              <section className="calc-guide-scope" aria-label="데이터 범위">
+                <h3 className="calc-guide-section__title">데이터 범위</h3>
+                <ul className="calc-guide-scope__list">
+                  {DATA_SCOPE.map((item) => (
+                    <li key={item.label} className="calc-guide-scope__item">
+                      <span className="calc-guide-scope__label">{item.label}</span>
+                      <span className="calc-guide-scope__value">{item.value}</span>
+                    </li>
+                  ))}
+                </ul>
+                <DataScopeDownloadButton className="calc-guide-scope__actions" />
+              </section>
+
+              <section
+                className="calc-guide-boundary"
+                aria-label="행정구역 개정 안내"
+              >
+                <h3 className="calc-guide-section__title">행정구역 개정 안내</h3>
+                <p className="calc-guide-boundary__intro">
+                  데이터 기간(2023.01~2026.04) 내 시·군·구 통합·분할·관할 변경
+                  이력입니다.
+                </p>
+                <ul className="calc-guide-boundary__list">
+                  {ADMIN_BOUNDARY_REVISIONS.map((revision) => (
+                    <li key={revision.id} className="calc-guide-boundary__item">
+                      <div className="calc-guide-boundary__item-head">
+                        <span className="calc-guide-boundary__ym">
+                          {revision.effectiveYm.replace("-", ".")}
+                        </span>
+                        <strong className="calc-guide-boundary__item-title">
+                          {revision.title}
+                          {revision.scheduled ? " (예정)" : ""}
+                        </strong>
+                      </div>
+                      <p className="calc-guide-boundary__summary">
+                        {revision.summary}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+                <div className="calc-guide-boundary__policy">
+                  <h4 className="calc-guide-boundary__policy-title">
+                    대시보드 처리 방식
+                  </h4>
+                  <ul className="calc-guide-boundary__policy-list">
+                    {BOUNDARY_POLICY.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            </div>
 
             <section className="calc-guide-faq" aria-label="자주 묻는 질문">
               <h3 className="calc-guide-section__title">FAQ / 주석</h3>
