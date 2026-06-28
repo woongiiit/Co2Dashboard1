@@ -15,7 +15,6 @@ export default function AiConsultingPage() {
       <DashboardPageHeader
         title="AI 컨설팅"
         subtitle="선택 지역의 관광 탄소발자국 결과 해석 및 맞춤 제언"
-        meta="기준 기간: 2023.01 ~ 2026.04 · 엑셀 데이터 · Hugging Face"
         icon="ai-consulting"
       />
 
