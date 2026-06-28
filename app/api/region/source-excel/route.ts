@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const buffer = readRegionSourceExcelBuffer();
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type":
