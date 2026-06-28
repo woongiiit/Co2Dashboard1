@@ -19,7 +19,6 @@ type AiConsultingContentGridProps = {
   sectorEmission: SectorEmissionItem[];
   radar: AiConsultingRadarData;
   insightsLoading: boolean;
-  insightFooter?: string;
 };
 
 export function AiConsultingContentGrid({
@@ -31,7 +30,6 @@ export function AiConsultingContentGrid({
   sectorEmission,
   radar,
   insightsLoading,
-  insightFooter,
 }: AiConsultingContentGridProps) {
   return (
     <div className="ai-consult-grid">
@@ -49,7 +47,6 @@ export function AiConsultingContentGrid({
       <PriorityActionTasksPanel tasks={priorityTasks} loading={insightsLoading} />
       <OneLineRecommendationBar
         text={oneLineRecommendation}
-        footer={insightFooter}
         loading={insightsLoading}
       />
     </div>

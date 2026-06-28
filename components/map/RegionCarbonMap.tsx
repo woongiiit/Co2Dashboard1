@@ -234,7 +234,6 @@ export function RegionCarbonMap({
 
   return (
     <div className={`carbon-map ${className}`.trim()}>
-      <p className="carbon-map__hint">지도를 클릭하여 시도 · 시군구를 선택할 수 있습니다.</p>
       <div className="carbon-map__frame">
         <div ref={containerRef} className="carbon-map__canvas" role="application" aria-label="시군구 관광 탄소발자국 분포 지도" />
         <CarbonMapLegend />

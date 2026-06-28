@@ -22,6 +22,9 @@ export type IndustryMajorItem = {
   color: string;
 };
 
+/** 중분류 업종 비교 차트 — IndustryMajorItem과 동일 구조 */
+export type IndustryMidItem = IndustryMajorItem;
+
 export type IndustryMonthlyHighlight = {
   monthIndex: number;
   value: number;
@@ -32,6 +35,7 @@ export type IndustryDashboardData = {
   periodLabel: string;
   kpi: KpiItem[];
   majorIndustries: IndustryMajorItem[];
+  midIndustries: IndustryMidItem[];
   midRanking: TableRow[];
   monthlyTrend: RegionTrendSeries;
   monthlyHighlight: IndustryMonthlyHighlight | null;

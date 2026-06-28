@@ -1,12 +1,10 @@
 type OneLineRecommendationBarProps = {
   text: string;
-  footer?: string;
   loading?: boolean;
 };
 
 export function OneLineRecommendationBar({
   text,
-  footer,
   loading = false,
 }: OneLineRecommendationBarProps) {
   return (
@@ -28,7 +26,6 @@ export function OneLineRecommendationBar({
           <strong className="ai-consult-oneline__label">한 줄 제언</strong>
           {loading && !text ? "AI 한 줄 제언 생성 중…" : text}
         </p>
-        {footer ? <p className="ai-consult-oneline__meta">{footer}</p> : null}
       </div>
     </div>
   );

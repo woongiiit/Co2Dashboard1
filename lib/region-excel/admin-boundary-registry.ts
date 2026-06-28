@@ -17,6 +17,42 @@ export function buildRegionLabel(ref: AdminRegionRef): string {
   return `${ref.sidoNm} ${ref.sggNm}`;
 }
 
+export function buildRegionLabelFromRow(
+  row: Pick<RegionExcelRow, "sidoNm" | "sggNm">,
+): string {
+  return buildRegionLabel({ sidoNm: row.sidoNm, sggNm: row.sggNm });
+}
+
+/** UI·지도 라벨 기준 — legacy JSON의 세종 중복 라벨 호환 */
+export function normalizeRegionLabel(regionLabel: string): string {
+  const trimmed = regionLabel.replace(/\s+/g, " ").trim();
+  if (trimmed === "세종특별자치시 세종특별자치시") {
+    return "세종특별자치시";
+  }
+  return trimmed;
+}
+
+export function regionLabelsMatch(a: string, b: string): boolean {
+  return normalizeRegionLabel(a) === normalizeRegionLabel(b);
+}
+
+export function findRowByRegionLabel(
+  rows: RegionExcelRow[],
+  regionLabel: string,
+): RegionExcelRow | undefined {
+  const normalized = normalizeRegionLabel(regionLabel);
+  return rows.find((row) =>
+    regionLabelsMatch(buildRegionLabelFromRow(row), normalized),
+  );
+}
+
+export function rowMatchesRegionLabel(
+  row: RegionExcelRow,
+  regionLabel: string,
+): boolean {
+  return regionLabelsMatch(buildRegionLabelFromRow(row), regionLabel);
+}
+
 export function rowMatchesRef(row: RegionExcelRow, ref: AdminRegionRef): boolean {
   return row.sidoNm === ref.sidoNm && row.sggNm === ref.sggNm;
 }

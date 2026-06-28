@@ -117,14 +117,6 @@ export function RegionDashboardContent() {
     setFilters((prev) => ({ ...prev, ...patch }));
   };
 
-  const insightFooter = insights
-    ? insights.source === "huggingface"
-      ? `기준 기간: ${insights.periodLabel} · Hugging Face${insights.model ? ` (${insights.model})` : ""}`
-      : `기준 기간: ${insights.periodLabel} · 규칙 기반 요약${insights.warning ? ` · ${insights.warning}` : ""}`
-    : data?.periodLabel
-      ? `기준 기간: ${data.periodLabel}`
-      : undefined;
-
   return (
     <>
       <DashboardFilterBar>
@@ -156,10 +148,7 @@ export function RegionDashboardContent() {
           )}
         </DashboardCard>
 
-        <DashboardCard
-          title="시군구 탄소발자국 순위 (Top 10)"
-          description="선택한 기간·지표 기준 총 관광 탄소발자국"
-        >
+        <DashboardCard title="시군구 탄소발자국 순위 (Top 10)">
           {loading && !data ? (
             <PanelSkeleton variant="chart" label="순위 불러오는 중…" />
           ) : (
@@ -188,7 +177,6 @@ export function RegionDashboardContent() {
             loading={insightsLoading}
             loadingLabel="Hugging Face API로 관광경영 인사이트 생성 중…"
             error={insightsError}
-            footer={insightFooter}
           />
         </div>
       </div>

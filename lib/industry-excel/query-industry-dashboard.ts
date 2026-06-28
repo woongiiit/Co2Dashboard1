@@ -32,20 +32,13 @@ import {
   formatChangePoint,
   formatDecimal,
   formatInteger,
+  formatScaledCarbonMass,
   rawCarbonToTco2eq,
 } from "@/lib/region-excel/format";
 import { filterRowsPointInTime } from "@/lib/region-excel/resolve-admin-boundary";
 import type { RegionExcelRow, RegionTrendSeries } from "@/lib/region-excel/types";
 
 const TREND_YEARS: TrendYear[] = ["2023", "2024", "2025", "2026"];
-
-function compareHintLabel(
-  query: IndustryDashboardQuery,
-  compareReliability: CompareReliability,
-): string {
-  const base = query.compare === "prev" ? "직전 기간 대비" : "전년 동기간 대비";
-  return compareReliability.level === "limited" ? `${base} · 행정구역 개정 주의` : base;
-}
 
 function buildMajorIndustries(rows: RegionExcelRow[]): IndustryMajorItem[] {
   const definitions = getMajorIndustryDefinitions();
@@ -60,6 +53,29 @@ function buildMajorIndustries(rows: RegionExcelRow[]): IndustryMajorItem[] {
     value: item.value,
     share: total > 0 ? Math.round((item.value / total) * 1000) / 10 : 0,
     color: item.color,
+  }));
+}
+
+function buildMidIndustries(rows: RegionExcelRow[]): IndustryMajorItem[] {
+  const definitions = getMidIndustryDefinitions();
+  const colorByMajorLabel = new Map(
+    getMajorIndustryDefinitions().map((major) => [major.label, major.color]),
+  );
+
+  const values = definitions
+    .map((mid) => ({
+      name: mid.label,
+      value: Math.round(sumIndustryColumns(rows, [mid.column])),
+      color: colorByMajorLabel.get(mid.majorLabel) ?? "#94a3b8",
+    }))
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
+
+  const total = values.reduce((sum, item) => sum + item.value, 0);
+
+  return values.map((item) => ({
+    ...item,
+    share: total > 0 ? Math.round((item.value / total) * 1000) / 10 : 0,
   }));
 }
 
@@ -136,8 +152,6 @@ function findMonthlyHighlight(
 function buildKpi(
   currentRows: RegionExcelRow[],
   compareRows: RegionExcelRow[],
-  query: IndustryDashboardQuery,
-  compareReliability: CompareReliability,
   selectedColumns: string[],
 ): KpiItem[] {
   const selectedCarbon = sumIndustryColumns(currentRows, selectedColumns);
@@ -155,37 +169,19 @@ function buildKpi(
   const compareIndex = weightedIndustryIndex(compareRows, selectedColumns);
   const indexChange = formatChangePoint(avgIndex, compareIndex);
 
-  const changeHint = compareHintLabel(query, compareReliability);
   const yoyDisplay = selectedChange.text.replace("+", "");
+  const selectedCarbonDisplay = formatScaledCarbonMass(selectedCarbon);
+  const totalCarbonDisplay = formatScaledCarbonMass(totalCarbon);
 
   return [
     {
       label: "선택 업종 탄소발자국",
-      value: formatInteger(selectedCarbon),
-      unit: "tCO₂eq",
+      value: selectedCarbonDisplay.value,
+      unit: selectedCarbonDisplay.unit,
       change: selectedChange.text,
       changeDirection: selectedChange.direction,
-      hint: changeHint,
       icon: "industry-carbon",
       iconSrc: getIndustryKpiIconSrc("industry-carbon"),
-    },
-    {
-      label: "전체 대비 비중",
-      value: formatDecimal(share, 1),
-      unit: "%",
-      change: shareChange.text,
-      changeDirection: shareChange.direction,
-      hint: changeHint,
-      icon: "share-pie",
-      iconSrc: getIndustryKpiIconSrc("share-pie"),
-    },
-    {
-      label: "범위 내 총 탄소발자국",
-      value: formatInteger(totalCarbon),
-      unit: "tCO₂eq",
-      hint: "전 업종 합계",
-      icon: "tourism-spend",
-      iconSrc: getIndustryKpiIconSrc("tourism-spend"),
     },
     {
       label: "평균 탄소발자국 지수",
@@ -193,9 +189,24 @@ function buildKpi(
       unit: "지수",
       change: indexChange.text,
       changeDirection: indexChange.direction,
-      hint: changeHint,
       icon: "carbon-intensity",
       iconSrc: getIndustryKpiIconSrc("carbon-intensity"),
+    },
+    {
+      label: "전체 대비 비중",
+      value: formatDecimal(share, 1),
+      unit: "%",
+      change: shareChange.text,
+      changeDirection: shareChange.direction,
+      icon: "share-pie",
+      iconSrc: getIndustryKpiIconSrc("share-pie"),
+    },
+    {
+      label: "범위 내 총 탄소발자국",
+      value: totalCarbonDisplay.value,
+      unit: totalCarbonDisplay.unit,
+      icon: "tourism-spend",
+      iconSrc: getIndustryKpiIconSrc("tourism-spend"),
     },
     {
       label: "전년 대비 증감률",
@@ -208,7 +219,6 @@ function buildKpi(
           : selectedChange.direction === "up"
             ? "up"
             : "neutral",
-      hint: changeHint,
       icon: "yoy-trend",
       iconSrc: getIndustryKpiIconSrc("yoy-trend"),
     },
@@ -234,14 +244,9 @@ export function queryIndustryDashboard(
 
   return {
     periodLabel: formatPeriodLabel(query.periodStart, query.periodEnd),
-    kpi: buildKpi(
-      currentRows,
-      compareRows,
-      query,
-      compareReliability,
-      selectedColumns,
-    ),
+    kpi: buildKpi(currentRows, compareRows, selectedColumns),
     majorIndustries: buildMajorIndustries(currentRows),
+    midIndustries: buildMidIndustries(currentRows),
     midRanking: buildMidRanking(currentRows),
     monthlyTrend,
     monthlyHighlight: findMonthlyHighlight(monthlyTrend),

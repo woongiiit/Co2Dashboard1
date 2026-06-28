@@ -121,6 +121,12 @@ def carbon_column_index(headers: list[str]) -> int:
     raise KeyError("탄소배출량 컬럼을 찾을 수 없습니다.")
 
 
+def build_region_label(sido: str, sgg: str) -> str:
+    if sido == "세종특별자치시":
+        return sido
+    return f"{sido} {sgg}"
+
+
 def append_record(
     records: list[dict],
     *,
@@ -139,7 +145,7 @@ def append_record(
         {
             "sidoNm": sido,
             "sggNm": sgg,
-            "regionLabel": f"{sido} {sgg}",
+            "regionLabel": build_region_label(sido, sgg),
             "year": year,
             "month": month,
             "ym": f"{year}-{month:02d}",

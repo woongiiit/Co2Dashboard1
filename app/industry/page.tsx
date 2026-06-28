@@ -13,7 +13,6 @@ export default function IndustryPage() {
       <DashboardPageHeader
         title="업종 중심 분석"
         subtitle="6개 대분류·22개 중분류 업종별 관광 탄소발자국을 분석합니다."
-        meta="기준 기간: 2023.01 ~ 2026.04 · 엑셀 데이터"
         icon="industry"
       />
 

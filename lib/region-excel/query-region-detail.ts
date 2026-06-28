@@ -2,11 +2,18 @@ import type { KpiItem, TableRow } from "@/lib/mock-dashboard-data";
 import { MONTH_LABELS } from "@/lib/charts/monthly-carbon-trend-data";
 import type { CompareReliability } from "@/lib/region-excel/admin-boundary-types";
 import {
+  findRowByRegionLabel,
+  normalizeRegionLabel,
+  regionLabelsMatch,
+  rowMatchesRegionLabel,
+} from "@/lib/region-excel/admin-boundary-registry";
+import {
   formatChangePercent,
   formatChangePoint,
   formatDecimal,
   formatInteger,
   formatPeriodLabel,
+  formatScaledCarbonMass,
   isYmInRange,
   rawCarbonToTco2eq,
   shiftYmByYears,
@@ -35,7 +42,7 @@ function filterRegionRows(
 ): RegionExcelRow[] {
   return rows.filter(
     (row) =>
-      row.regionLabel === query.regionLabel &&
+      rowMatchesRegionLabel(row, query.regionLabel) &&
       isYmInRange(row.ym, query.periodStart, query.periodEnd),
   );
 }
@@ -47,7 +54,7 @@ function filterCompareRegionRows(
   const comparePeriod = getComparePeriod(query);
   return rows.filter(
     (row) =>
-      row.regionLabel === query.regionLabel &&
+      rowMatchesRegionLabel(row, query.regionLabel) &&
       isYmInRange(row.ym, comparePeriod.start, comparePeriod.end),
   );
 }
@@ -120,13 +127,20 @@ function computeRanks(
 ): { nationalRank: number; nationalCount: number; sidoRank: number; sidoCount: number; sidoNm: string } {
   const totals = regionTotalsAtEnd(allRows, periodEnd);
   const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
-  const nationalRank = Math.max(1, sorted.findIndex(([label]) => label === regionLabel) + 1);
-  const sidoNm = allRows.find((row) => row.regionLabel === regionLabel)?.sidoNm ?? "";
+  const normalizedLabel = normalizeRegionLabel(regionLabel);
+  const nationalRank = Math.max(
+    1,
+    sorted.findIndex(([label]) => regionLabelsMatch(label, normalizedLabel)) + 1,
+  );
+  const sidoNm = findRowByRegionLabel(allRows, normalizedLabel)?.sidoNm ?? "";
   const sidoEntries = sorted.filter(([label]) => {
-    const match = allRows.find((row) => row.regionLabel === label);
+    const match = findRowByRegionLabel(allRows, label);
     return match?.sidoNm === sidoNm;
   });
-  const sidoRank = Math.max(1, sidoEntries.findIndex(([label]) => label === regionLabel) + 1);
+  const sidoRank = Math.max(
+    1,
+    sidoEntries.findIndex(([label]) => regionLabelsMatch(label, normalizedLabel)) + 1,
+  );
 
   return {
     nationalRank,
@@ -213,7 +227,7 @@ function isRowInScope(
   sidoNm: string | null,
   mode: "region" | "national" | "sido",
 ): boolean {
-  if (mode === "region") return row.regionLabel === regionLabel;
+  if (mode === "region") return rowMatchesRegionLabel(row, regionLabel ?? "");
   if (mode === "sido") return row.sidoNm === sidoNm;
   return true;
 }
@@ -308,7 +322,7 @@ function buildComparison(
     Math.max(1, nationalValues.length);
 
   const sidoLabels = [...currentTotals.keys()].filter(
-    (label) => allRows.find((row) => row.regionLabel === label)?.sidoNm === ranks.sidoNm,
+    (label) => findRowByRegionLabel(allRows, label)?.sidoNm === ranks.sidoNm,
   );
   const sidoAvg = averageForLabels(currentTotals, sidoLabels);
   const similarAvg = averageForLabels(currentTotals, similarLabels);
@@ -318,7 +332,7 @@ function buildComparison(
     compareNationalValues.reduce((sum, value) => sum + value, 0) /
     Math.max(1, compareNationalValues.length);
   const compareSidoLabels = [...compareTotals.keys()].filter(
-    (label) => allRows.find((row) => row.regionLabel === label)?.sidoNm === ranks.sidoNm,
+    (label) => findRowByRegionLabel(allRows, label)?.sidoNm === ranks.sidoNm,
   );
   const compareSidoAvg = averageForLabels(compareTotals, compareSidoLabels);
   const compareSimilarAvg = averageForLabels(
@@ -353,6 +367,7 @@ function buildDetailKpi(
   const totalCarbon = sumRegionCarbon(currentRows);
   const compareCarbon = sumRegionCarbon(compareRows);
   const totalChange = formatChangePercent(totalCarbon, compareCarbon);
+  const totalCarbonDisplay = formatScaledCarbonMass(totalCarbon);
   const ranks = computeRanks(allRows, query.regionLabel, query.periodEnd);
   const avgIndex = weightedRegionIndex(currentRows);
   const compareIndex = weightedRegionIndex(compareRows);
@@ -365,13 +380,23 @@ function buildDetailKpi(
   return [
     {
       label: "선택 지역 총 탄소발자국",
-      value: formatInteger(totalCarbon),
-      unit: "tCO₂eq",
+      value: totalCarbonDisplay.value,
+      unit: totalCarbonDisplay.unit,
       change: totalChange.text,
       changeDirection: totalChange.direction,
       hint: changeHint,
       icon: "detail-region-carbon",
       iconSrc: getRegionDetailKpiIconSrc("detail-region-carbon"),
+    },
+    {
+      label: "평균 탄소발자국 지수",
+      value: formatDecimal(avgIndex),
+      unit: "지수",
+      change: indexChange.text,
+      changeDirection: indexChange.direction,
+      hint: changeHint,
+      icon: "detail-spend-intensity",
+      iconSrc: getRegionDetailKpiIconSrc("detail-spend-intensity"),
     },
     {
       label: "전국 순위",
@@ -389,16 +414,6 @@ function buildDetailKpi(
       icon: "detail-sido-rank",
       iconSrc: getRegionDetailKpiIconSrc("detail-sido-rank"),
     },
-    {
-      label: "평균 탄소발자국 지수",
-      value: formatDecimal(avgIndex),
-      unit: "지수",
-      change: indexChange.text,
-      changeDirection: indexChange.direction,
-      hint: changeHint,
-      icon: "detail-spend-intensity",
-      iconSrc: getRegionDetailKpiIconSrc("detail-spend-intensity"),
-    },
   ];
 }
 
@@ -406,7 +421,7 @@ function buildMapByLabelForSido(
   allRows: RegionExcelRow[],
   query: RegionDetailQuery,
 ): Record<string, number> {
-  const sidoNm = allRows.find((row) => row.regionLabel === query.regionLabel)?.sidoNm;
+  const sidoNm = findRowByRegionLabel(allRows, query.regionLabel)?.sidoNm;
   const scoped = allRows.filter(
     (row) =>
       (!sidoNm || row.sidoNm === sidoNm) &&
@@ -425,7 +440,7 @@ export function parseRegionDetailQuery(
   regionLabel: string,
 ): RegionDetailQuery {
   return {
-    regionLabel,
+    regionLabel: normalizeRegionLabel(regionLabel),
     periodStart: searchParams.get("start") ?? "2023-01",
     periodEnd: searchParams.get("end") ?? "2026-04",
     compare: searchParams.get("compare") === "prev" ? "prev" : "yoy",
@@ -434,36 +449,37 @@ export function parseRegionDetailQuery(
 
 export function queryRegionDetail(query: RegionDetailQuery): RegionDetailData {
   const allRows = loadRegionExcelRows();
-  const hasRegion = allRows.some((row) => row.regionLabel === query.regionLabel);
-  if (!hasRegion) {
-    throw new Error(`지역 데이터를 찾을 수 없습니다: ${query.regionLabel}`);
+  const normalizedLabel = normalizeRegionLabel(query.regionLabel);
+  if (!findRowByRegionLabel(allRows, normalizedLabel)) {
+    throw new Error(`지역 데이터를 찾을 수 없습니다: ${normalizedLabel}`);
   }
 
-  const currentRows = filterRegionRows(allRows, query);
-  const compareRows = filterCompareRegionRows(allRows, query);
-  const comparePeriod = getComparePeriod(query);
+  const resolvedQuery = { ...query, regionLabel: normalizedLabel };
+  const currentRows = filterRegionRows(allRows, resolvedQuery);
+  const compareRows = filterCompareRegionRows(allRows, resolvedQuery);
+  const comparePeriod = getComparePeriod(resolvedQuery);
   const compareReliability = detectCompareReliability(
-    query.periodStart,
-    query.periodEnd,
+    resolvedQuery.periodStart,
+    resolvedQuery.periodEnd,
     comparePeriod.start,
     comparePeriod.end,
   );
-  const ranks = computeRanks(allRows, query.regionLabel, query.periodEnd);
+  const ranks = computeRanks(allRows, normalizedLabel, resolvedQuery.periodEnd);
 
   return {
-    regionLabel: query.regionLabel,
+    regionLabel: normalizedLabel,
     sidoNm: ranks.sidoNm,
-    periodLabel: formatPeriodLabel(query.periodStart, query.periodEnd),
-    kpi: buildDetailKpi(currentRows, compareRows, allRows, query, compareReliability),
+    periodLabel: formatPeriodLabel(resolvedQuery.periodStart, resolvedQuery.periodEnd),
+    kpi: buildDetailKpi(currentRows, compareRows, allRows, resolvedQuery, compareReliability),
     mapValue: sumRegionCarbon(currentRows),
-    monthlyTrend: buildMonthlyTrend(allRows, query, ranks.sidoNm),
-    comparison: buildComparison(allRows, currentRows, compareRows, query),
+    monthlyTrend: buildMonthlyTrend(allRows, resolvedQuery, ranks.sidoNm),
+    comparison: buildComparison(allRows, currentRows, compareRows, resolvedQuery),
     industryComposition: buildIndustryComposition(currentRows),
     industryRanking: buildIndustryRanking(currentRows),
-    mapByLabel: buildMapByLabelForSido(allRows, query),
+    mapByLabel: buildMapByLabelForSido(allRows, resolvedQuery),
     boundaryWarnings: buildBoundaryWarningMessages(
-      query.periodStart,
-      query.periodEnd,
+      resolvedQuery.periodStart,
+      resolvedQuery.periodEnd,
       compareReliability,
     ),
     compareReliability,

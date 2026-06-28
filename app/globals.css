@@ -774,6 +774,9 @@ a {
 
 .industry-dashboard__share .dashboard-card__body {
   padding: 0.5rem 0.625rem 0.625rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .industry-share-chart {
@@ -1106,6 +1109,26 @@ a {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 0.25rem;
+}
+
+.industry-chart-panel--scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.industry-mid-compare-scroll {
+  flex: 1;
+  min-height: 0;
+  max-height: 17.5rem;
+  overflow: auto;
+  padding-right: 0.25rem;
+  padding-bottom: 0.125rem;
+}
+
+.industry-mid-compare-scroll__inner {
+  width: 100%;
 }
 
 .industry-mid-ranking {

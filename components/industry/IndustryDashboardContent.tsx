@@ -12,7 +12,7 @@ import { IndustryMidRankingPanel } from "@/components/industry/IndustryMidRankin
 import {
   IndustryMonthlyTrendChartLazy,
   MajorIndustryComparisonChartLazy,
-  MajorIndustryShareChartLazy,
+  MidIndustryComparisonChartLazy,
 } from "@/lib/lazy-dashboard-components";
 import {
   buildIndustryDashboardSearchParams,
@@ -105,14 +105,6 @@ export function IndustryDashboardContent() {
     return () => controller.abort();
   }, [filters]);
 
-  const insightFooter = insights
-    ? insights.source === "huggingface"
-      ? `기준 기간: ${insights.periodLabel} · Hugging Face${insights.model ? ` (${insights.model})` : ""}`
-      : `기준 기간: ${insights.periodLabel} · 규칙 기반 요약${insights.warning ? ` · ${insights.warning}` : ""}`
-    : data?.periodLabel
-      ? `기준 기간: ${data.periodLabel}`
-      : undefined;
-
   const deepAnalysisHref = useMemo(
     () => buildIndustryDeepAnalysisHref(filters),
     [filters],
@@ -151,7 +143,6 @@ export function IndustryDashboardContent() {
       <div className="industry-dashboard">
         <DashboardCard
           title="대분류 업종별 탄소발자국 비교"
-          description="(tCO₂eq)"
           className="industry-dashboard__compare dashboard-card--fill"
         >
           {loading && !data ? (
@@ -164,7 +155,6 @@ export function IndustryDashboardContent() {
         <div className="industry-dashboard__right">
           <DashboardCard
             title="중분류 업종별 탄소발자국 순위"
-            description="선택 기간 합계 기준 · (tCO₂eq)"
             className="industry-dashboard__ranking dashboard-card--fill"
           >
             {loading && !data ? (
@@ -181,14 +171,12 @@ export function IndustryDashboardContent() {
               loading={insightsLoading}
               loadingLabel="Hugging Face API로 업종 인사이트 생성 중…"
               error={insightsError}
-              footer={insightFooter}
             />
           </div>
         </div>
 
         <DashboardCard
           title="선택 업종 월별 탄소발자국 추이"
-          description="2023년 · 2024년 · 2025년 · 2026년"
           className="industry-dashboard__trend dashboard-card--fill"
         >
           {loading && !data ? (
@@ -202,14 +190,13 @@ export function IndustryDashboardContent() {
         </DashboardCard>
 
         <DashboardCard
-          title="대분류 업종별 비중"
-          description="전체 기간 · (tCO₂eq 비중)"
+          title="중분류 업종별 탄소발자국 비교"
           className="industry-dashboard__share dashboard-card--fill"
         >
           {loading && !data ? (
             <PanelSkeleton variant="chart" label="차트 불러오는 중…" />
           ) : (
-            <MajorIndustryShareChartLazy items={data?.majorIndustries ?? []} />
+            <MidIndustryComparisonChartLazy items={data?.midIndustries ?? []} />
           )}
         </DashboardCard>
       </div>

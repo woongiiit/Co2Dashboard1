@@ -53,6 +53,10 @@ export function RegionDetailPageFilters({
         options={KOREA_SIDO_OPTIONS}
         value={sidoCode}
         onChange={(value) => {
+          if (value === "all") {
+            router.push("/region");
+            return;
+          }
           const nextOptions = getSigunguOptionsForSido(value);
           const first = nextOptions.find((option) => option.value !== "all");
           if (first) router.push(regionDetailPath(first.value));

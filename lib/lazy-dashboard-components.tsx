@@ -45,6 +45,17 @@ export const IndustryMonthlyTrendChartLazy = dynamic(
   },
 );
 
+export const MidIndustryComparisonChartLazy = dynamic(
+  () =>
+    import("@/components/industry/MidIndustryComparisonChart").then(
+      (mod) => mod.MidIndustryComparisonChart,
+    ),
+  {
+    ssr: false,
+    loading: () => <PanelSkeleton variant="chart" />,
+  },
+);
+
 export const MajorIndustryShareChartLazy = dynamic(
   () =>
     import("@/components/industry/MajorIndustryShareChart").then(

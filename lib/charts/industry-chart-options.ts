@@ -6,6 +6,7 @@ import type {
   IndustryMonthlyHighlight,
 } from "@/lib/industry-excel/types";
 import type { RegionTrendSeries } from "@/lib/region-excel/types";
+import { formatScaledCarbonMass } from "@/lib/region-excel/format";
 
 function formatCo2(value: number): string {
   return new Intl.NumberFormat("ko-KR").format(Math.round(value));
@@ -108,6 +109,107 @@ export function buildMajorIndustryBarOptions(
             if (!item) return "";
             if (mode === "percent") return `${item.share}%`;
             return `${formatCo2(item.value)}\n(${item.share}%)`;
+          },
+        },
+      },
+    ],
+  };
+}
+
+function formatMidBarLabel(
+  item: IndustryMajorItem,
+  mode: "absolute" | "percent",
+): string {
+  if (mode === "percent") return `${item.share}%`;
+  const scaled = formatScaledCarbonMass(item.value);
+  return `${scaled.value} ${scaled.unit} (${item.share}%)`;
+}
+
+/** 좌우 스크롤 시 라벨·막대가 잘리지 않도록 최소 차트 너비(px) */
+export function getMidIndustryChartMinWidth(
+  items: IndustryMajorItem[],
+  mode: "absolute" | "percent",
+): number {
+  if (items.length === 0) return 280;
+
+  const longestLabel = items.reduce(
+    (max, item) => Math.max(max, formatMidBarLabel(item, mode).length),
+    8,
+  );
+  const labelPx = Math.round(longestLabel * 6.8) + 20;
+  const barFillRatio = 0.36;
+  const plotWidth = Math.max(200, Math.ceil(labelPx / (1 - barFillRatio)));
+
+  return 76 + plotWidth + 16;
+}
+
+export function buildMidIndustryBarOptions(
+  items: IndustryMajorItem[],
+  mode: "absolute" | "percent",
+): EChartsOption {
+  const names = items.map((item) => item.name);
+  const values =
+    mode === "absolute"
+      ? items.map((item) => item.value)
+      : items.map((item) => item.share);
+  const maxValue = Math.max(...items.map((item) => item.value), 1);
+  const maxShare = Math.max(...items.map((item) => item.share), 1);
+
+  // 막대는 plot 왼쪽 ~36%까지만 쓰고, 오른쪽은 숫자 라벨 전용 공간으로 둠
+  const barFillRatio = 0.36;
+  const xMax =
+    mode === "absolute"
+      ? Math.ceil(maxValue / barFillRatio / 100_000) * 100_000
+      : Math.max(100, Math.ceil(maxShare / barFillRatio));
+
+  return {
+    grid: { left: 76, right: 12, top: 8, bottom: 8, containLabel: false },
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      formatter: (params: unknown) => {
+        if (!Array.isArray(params) || !params[0]) return "";
+        const idx = params[0].dataIndex as number;
+        const item = items[idx];
+        if (!item) return "";
+        return `${item.name}<br/>${formatCo2(item.value)} tCO₂eq (${item.share}%)`;
+      },
+    },
+    xAxis: {
+      type: "value",
+      max: xMax,
+      axisLabel: { show: false },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      splitLine: { lineStyle: { color: "#f1f5f9", type: "dashed" } },
+    },
+    yAxis: {
+      type: "category",
+      data: names,
+      inverse: true,
+      axisLabel: { fontSize: 10, color: "#475569", width: 72, overflow: "truncate" },
+      axisTick: { show: false },
+      axisLine: { show: false },
+    },
+    series: [
+      {
+        type: "bar",
+        data: values.map((val, idx) => ({
+          value: val,
+          itemStyle: { color: items[idx]?.color ?? "#2f8f5b" },
+        })),
+        barWidth: 14,
+        label: {
+          show: true,
+          position: "right",
+          distance: 6,
+          fontSize: 10,
+          color: "#1f3d2b",
+          formatter: (p: unknown) => {
+            const param = p as { dataIndex?: number };
+            const item = items[param.dataIndex ?? 0];
+            if (!item) return "";
+            return formatMidBarLabel(item, mode);
           },
         },
       },

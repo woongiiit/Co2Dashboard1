@@ -1,8 +1,8 @@
 import { getHuggingfaceConfig } from "@/lib/huggingface/config";
 import { parseAiConsultingInsightResponse } from "@/lib/huggingface/parse-ai-consulting-insight-response";
 import {
-  AI_CONSULTING_INSIGHT_SYSTEM_PROMPT,
-  buildAiConsultingInsightUserPrompt,
+  resolveAiConsultingSystemPrompt,
+  resolveAiConsultingUserPrompt,
   type AiConsultingInsightContext,
 } from "@/lib/ai-consulting/build-ai-consulting-insight-context";
 import type { AiConsultingInsightsSections } from "@/lib/ai-consulting/types";
@@ -62,8 +62,8 @@ export async function generateAiConsultingInsightsWithHf(
       body: JSON.stringify({
         model: config.model,
         messages: [
-          { role: "system", content: AI_CONSULTING_INSIGHT_SYSTEM_PROMPT },
-          { role: "user", content: buildAiConsultingInsightUserPrompt(context) },
+          { role: "system", content: resolveAiConsultingSystemPrompt(context) },
+          { role: "user", content: resolveAiConsultingUserPrompt(context) },
         ],
         max_tokens: Math.max(config.maxTokens, 2000),
         temperature: config.temperature,
@@ -138,7 +138,7 @@ function mergeAiConsultingSections(
           : fallback.priorityActions.long,
     },
     oneLineRecommendation:
-      parsed.oneLineRecommendation.length >= 12
+      parsed.oneLineRecommendation.length >= 40
         ? parsed.oneLineRecommendation
         : fallback.oneLineRecommendation,
   };

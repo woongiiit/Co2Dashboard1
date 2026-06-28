@@ -1,8 +1,12 @@
 import type { KpiItem } from "@/lib/mock-dashboard-data";
 import type { CompareReliability } from "@/lib/region-excel/admin-boundary-types";
 
+export type AiConsultingScope = "national" | "sido" | "sigungu";
+
 export type AiConsultingQuery = {
+  scope: AiConsultingScope;
   regionLabel: string;
+  sidoCode: string;
   periodStart: string;
   periodEnd: string;
   compare: "yoy" | "prev";

@@ -10,6 +10,7 @@ import {
   formatDecimal,
   formatInteger,
   formatPeriodLabel,
+  formatScaledCarbonMass,
   getSidoLabelFromCode,
   isYmInRange,
   rawCarbonToTco2eq,
@@ -103,13 +104,6 @@ function aggregateDisplayTotals(
   return totals;
 }
 
-function compareHintLabel(
-  query: RegionDashboardQuery,
-  compareReliability: CompareReliability,
-): string {
-  const base = query.compare === "prev" ? "직전 기간 대비" : "전년 동기간 대비";
-  return compareReliability.level === "limited" ? `${base} · 행정구역 개정 주의` : base;
-}
 function sumCarbon(rows: RegionExcelRow[]): number {
   return filterRowsPointInTime(rows).reduce(
     (sum, row) => sum + rawCarbonToTco2eq(row.carbonRaw),
@@ -202,12 +196,12 @@ function buildKpi(
   currentRows: RegionExcelRow[],
   compareRowsData: RegionExcelRow[],
   query: RegionDashboardQuery,
-  compareReliability: CompareReliability,
   comparePeriodEnd: string,
 ): KpiItem[] {
   const totalCarbon = sumCarbon(currentRows);
   const compareCarbon = sumCarbon(compareRowsData);
   const totalChange = formatChangePercent(totalCarbon, compareCarbon);
+  const totalCarbonDisplay = formatScaledCarbonMass(totalCarbon);
 
   const avgIndex = weightedIndex(currentRows);
   const compareIndex = weightedIndex(compareRowsData);
@@ -225,18 +219,17 @@ function buildKpi(
   const compareMonthlyAverage =
     compareMonthCount > 0 ? compareCarbon / compareMonthCount : 0;
   const monthlyChange = formatChangePercent(monthlyAverage, compareMonthlyAverage);
+  const monthlyAverageDisplay = formatScaledCarbonMass(monthlyAverage);
 
   const regionCount = countRegionsAsOfEnd(currentRows, query.periodEnd);
-  const changeHint = compareHintLabel(query, compareReliability);
 
   return [
     {
       label: "총 관광 탄소발자국",
-      value: formatInteger(totalCarbon),
-      unit: "tCO₂eq",
+      value: totalCarbonDisplay.value,
+      unit: totalCarbonDisplay.unit,
       change: totalChange.text,
       changeDirection: totalChange.direction,
-      hint: changeHint,
       icon: "region-total-carbon",
       iconSrc: getRegionKpiIconSrc("region-total-carbon"),
     },
@@ -246,17 +239,15 @@ function buildKpi(
       unit: "지수",
       change: indexChange.text,
       changeDirection: indexChange.direction,
-      hint: changeHint,
       icon: "region-per-capita",
       iconSrc: getRegionKpiIconSrc("region-per-capita"),
     },
     {
       label: "월평균 탄소발자국",
-      value: formatInteger(monthlyAverage),
-      unit: "tCO₂eq",
+      value: monthlyAverageDisplay.value,
+      unit: monthlyAverageDisplay.unit,
       change: monthlyChange.text,
       changeDirection: monthlyChange.direction,
-      hint: changeHint,
       icon: "region-spend-intensity",
       iconSrc: getRegionKpiIconSrc("region-spend-intensity"),
     },
@@ -266,7 +257,6 @@ function buildKpi(
       unit: "%",
       change: topShareChange.text,
       changeDirection: topShareChange.direction,
-      hint: changeHint,
       icon: "region-top-share",
       iconSrc: getRegionKpiIconSrc("region-top-share"),
     },
@@ -274,7 +264,6 @@ function buildKpi(
       label: "분석 시군구 수",
       value: formatInteger(regionCount),
       unit: "개",
-      hint: `${query.periodEnd} 시점 행정구역 기준`,
       icon: "region-priority",
       iconSrc: getRegionKpiIconSrc("region-priority"),
     },
@@ -359,13 +348,7 @@ export function queryRegionDashboard(
 
   return {
     periodLabel: formatPeriodLabel(query.periodStart, query.periodEnd),
-    kpi: buildKpi(
-      currentRows,
-      compareRowsData,
-      query,
-      compareReliability,
-      comparePeriod.end,
-    ),
+    kpi: buildKpi(currentRows, compareRowsData, query, comparePeriod.end),
     ranking: buildRanking(currentRows, compareRowsData, query.periodEnd),
     trend: buildTrend(currentRows),
     mapByLabel: buildMapByLabelFromRows(

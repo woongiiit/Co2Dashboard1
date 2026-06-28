@@ -22,6 +22,28 @@ export function formatDecimal(value: number, digits = 2): string {
   }).format(value);
 }
 
+/** KPI용 — 값 크기에 따라 tCO₂eq / 천 / 백만 단위 자동 선택 */
+export function formatScaledCarbonMass(value: number): {
+  value: string;
+  unit: string;
+} {
+  const abs = Math.abs(value);
+
+  if (abs >= 1_000_000) {
+    const scaled = value / 1_000_000;
+    const digits = scaled >= 100 ? 1 : 2;
+    return { value: formatDecimal(scaled, digits), unit: "백만 tCO₂eq" };
+  }
+
+  if (abs >= 10_000) {
+    const scaled = value / 1_000;
+    const digits = scaled >= 100 ? 0 : 1;
+    return { value: formatDecimal(scaled, digits), unit: "천 tCO₂eq" };
+  }
+
+  return { value: formatInteger(value), unit: "tCO₂eq" };
+}
+
 export function rawCarbonToTco2eq(raw: number): number {
   return raw / CARBON_RAW_TO_TCO2EQ;
 }

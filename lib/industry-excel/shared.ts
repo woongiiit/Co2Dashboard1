@@ -10,6 +10,7 @@ import {
   shiftYmByYears,
 } from "@/lib/region-excel/format";
 import { loadRegionExcelRows } from "@/lib/region-excel/load-region-data";
+import { rowMatchesRegionLabel } from "@/lib/region-excel/admin-boundary-registry";
 import {
   buildBoundaryWarningMessages,
   detectCompareReliability,
@@ -29,7 +30,7 @@ export function filterIndustryScopeRows(
 
   return rows.filter((row) => {
     if (sidoLabel && row.sidoNm !== sidoLabel) return false;
-    if (query.regionLabel !== "all" && row.regionLabel !== query.regionLabel) {
+    if (query.regionLabel !== "all" && !rowMatchesRegionLabel(row, query.regionLabel)) {
       return false;
     }
     return isYmInRange(row.ym, query.periodStart, query.periodEnd);

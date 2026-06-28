@@ -1,6 +1,7 @@
 import {
   ADMIN_BOUNDARY_REVISIONS,
   buildRegionLabel,
+  buildRegionLabelFromRow,
   findRevisionForRow,
   rowMatchesRef,
 } from "@/lib/region-excel/admin-boundary-registry";
@@ -59,7 +60,7 @@ export function resolveDisplayLabel(row: RegionExcelRow, asOfYm: string): string
     }
   }
 
-  return row.regionLabel;
+  return buildRegionLabelFromRow(row);
 }
 
 export function getStableRegionKey(row: RegionExcelRow): string | null {
@@ -203,7 +204,7 @@ export function buildCompareAggregationKey(
     return displayLabel;
   }
 
-  return row.regionLabel;
+  return buildRegionLabelFromRow(row);
 }
 
 export function detectRevisionsInRange(

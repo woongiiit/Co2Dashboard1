@@ -76,13 +76,6 @@ export function AiConsultingContent() {
   );
 
   const fetchData = useCallback(async (filters: AiConsultingFilterState) => {
-    if (filters.sigunguValue === "all") {
-      setError("시군구를 선택해 주세요.");
-      setLoading(false);
-      setInsightsLoading(false);
-      return;
-    }
-
     const params = buildAiConsultingSearchParams(filters);
     setError(null);
     setLoading(true);
@@ -129,6 +122,7 @@ export function AiConsultingContent() {
   }, [appliedFilters, fetchData]);
 
   const handleApply = () => {
+    setError(null);
     setAppliedFilters({ ...draftFilters });
   };
 
@@ -141,14 +135,6 @@ export function AiConsultingContent() {
       { id: "long", label: "장기 (3년 ~)", items: actions.long },
     ];
   }, [insights]);
-
-  const insightFooter = insights
-    ? insights.source === "huggingface"
-      ? `${insights.regionLabel} · ${insights.periodLabel} · Hugging Face${insights.model ? ` (${insights.model})` : ""}`
-      : `${insights.regionLabel} · ${insights.periodLabel} · 규칙 기반${insights.warning ? ` · ${insights.warning}` : ""}`
-    : dashboard?.periodLabel
-      ? `${dashboard.regionLabel} · ${dashboard.periodLabel}`
-      : undefined;
 
   const radar = dashboard?.radar ?? {
     indicators: ["총 배출량", "1인당 배출", "산업 집중도", "증가 추세", "감축 잠재력"],
@@ -192,7 +178,6 @@ export function AiConsultingContent() {
         sectorEmission={dashboard?.sectorEmission ?? []}
         radar={radar}
         insightsLoading={insightsLoading}
-        insightFooter={insightFooter}
       />
     </>
   );
