@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { CoverNavigationOverlay } from "@/components/cover/CoverNavigationOverlay";
 import { CoverRoutePrefetch } from "@/components/cover/CoverRoutePrefetch";
+import { CoverHelpButton } from "@/components/cover/CoverHelpButton";
 import { HeroCard } from "@/components/cover/HeroCard";
 import { COVER_NAV_ITEMS } from "@/lib/cover-nav-items";
 
@@ -36,6 +37,7 @@ export function CoverHero() {
           ))}
         </nav>
       </div>
+      <CoverHelpButton />
     </section>
   );
 }

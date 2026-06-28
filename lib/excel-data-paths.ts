@@ -15,5 +15,12 @@ export const EXCEL_DATA_SHARED_DIR = path.join(EXCEL_DATA_ROOT, "shared");
 /** 서버에서 읽을 런타임 JSON (지역) */
 export const REGION_DASHBOARD_JSON = "region-dashboard.json";
 
+/** 지역 산정 원본 엑셀 (다운로드·변환 입력) */
+export const REGION_SOURCE_EXCEL = "★최종★탄소발자국_수식_산정(시안용).xlsx";
+
+/** 다운로드 시 표시할 파일명 */
+export const REGION_SOURCE_EXCEL_DOWNLOAD_NAME =
+  "탄소발자국_수식_산정(시안용).xlsx";
+
 /** 서버에서 읽을 엑셀 확장자 (컨verter 입력용) */
 export const EXCEL_FILE_EXTENSIONS = [".xlsx", ".xls"] as const;
