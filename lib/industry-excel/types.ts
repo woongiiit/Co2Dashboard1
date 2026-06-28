@@ -42,7 +42,8 @@ export type IndustryDashboardData = {
 export type IndustryDeepAnalysisCompare = "yoy" | "prev";
 
 export type IndustryDeepAnalysisQuery = {
-  regionValue: string;
+  sidoCode: string;
+  regionLabel: string;
   majorCode: string;
   compare: IndustryDeepAnalysisCompare;
 };
@@ -54,13 +55,13 @@ export type IndustryDeepAnalysisComparisonRow = {
     y2023: string;
     y2024: string;
     y2024Change: string;
-    y2024Direction: "up" | "down";
+    y2024Direction: "up" | "down" | "neutral";
     y2025: string;
     y2025Change: string;
-    y2025Direction: "up" | "down";
+    y2025Direction: "up" | "down" | "neutral";
     y2026: string;
     y2026Change: string;
-    y2026Direction: "up" | "down";
+    y2026Direction: "up" | "down" | "neutral";
   };
 };
 

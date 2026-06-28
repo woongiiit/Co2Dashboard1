@@ -18,12 +18,35 @@ function formatPercent(value: number): string {
   return `${sign}${value.toFixed(1)}%`;
 }
 
-function computeYAxisMax(trend: RegionTrendSeries): number {
-  const values = (["2023", "2024", "2025", "2026"] as const).flatMap((year) =>
-    (trend[year] ?? []).filter((value): value is number => value != null),
-  );
-  const max = values.length > 0 ? Math.max(...values) : 500_000;
-  return Math.ceil(max * 1.15 / 100_000) * 100_000;
+/** 관측값 min/max 기준 Y축 — 0 고정 대신 데이터 구간에 맞춰 연도별 추세를 구분 */
+function computeObservedYAxisRange(values: number[]): {
+  min: number;
+  max: number;
+  interval: number;
+} {
+  if (values.length === 0) {
+    return { min: 0, max: 500_000, interval: 100_000 };
+  }
+
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const span = Math.max(maxValue - minValue, maxValue * 0.02);
+  const padding = span * 0.08;
+
+  const interval = niceTickStep(span + padding * 2, 4);
+  const min = Math.floor((minValue - padding) / interval) * interval;
+  const max = Math.ceil((maxValue + padding) / interval) * interval;
+
+  return { min: Math.max(0, min), max, interval };
+}
+
+function niceTickStep(span: number, targetTicks: number): number {
+  const rough = span / Math.max(1, targetTicks);
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const normalized = rough / magnitude;
+  const niceUnit =
+    normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return niceUnit * magnitude;
 }
 
 export function buildDeepAnalysisMonthlyTrendOptions(
@@ -36,8 +59,10 @@ export function buildDeepAnalysisMonthlyTrendOptions(
     "2025": "#7c3aed",
     "2026": "#f97316",
   };
-  const yMax = computeYAxisMax(trend);
-  const interval = Math.max(100_000, Math.ceil(yMax / 4 / 100_000) * 100_000);
+  const allValues = years.flatMap((year) =>
+    (trend[year] ?? []).filter((value): value is number => value != null && value > 0),
+  );
+  const { min: yMin, max: yMax, interval } = computeObservedYAxisRange(allValues);
 
   const series = years.map((year) => ({
     name: `${year}년`,
@@ -69,7 +94,7 @@ export function buildDeepAnalysisMonthlyTrendOptions(
     },
     yAxis: {
       type: "value",
-      min: 0,
+      min: yMin,
       max: yMax,
       interval,
       axisLabel: {

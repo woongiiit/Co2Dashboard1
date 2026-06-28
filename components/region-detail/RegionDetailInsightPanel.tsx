@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { RegionDetailInsightsSections } from "@/lib/region-excel/types";
 
 type RegionDetailInsightPanelProps = {
+  regionLabel: string;
   sections: RegionDetailInsightsSections;
   loading?: boolean;
   error?: string | null;
@@ -30,6 +31,7 @@ function InsightSection({
 }
 
 export function RegionDetailInsightPanel({
+  regionLabel,
   sections,
   loading = false,
   error = null,
@@ -65,7 +67,10 @@ export function RegionDetailInsightPanel({
         <p className="region-detail-insight__meta">{footer}</p>
       ) : null}
 
-      <Link href="/ai-consulting" className="region-detail-insight__cta">
+      <Link
+        href={`/ai-consulting?region=${encodeURIComponent(regionLabel)}`}
+        className="region-detail-insight__cta"
+      >
         지역 맞춤 개선 제안 보기 &gt;
       </Link>
     </div>

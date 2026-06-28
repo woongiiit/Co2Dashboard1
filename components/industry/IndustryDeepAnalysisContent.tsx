@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { DashboardFilterBar } from "@/components/dashboard/DashboardFilterBar";
 import { KpiCardRow } from "@/components/dashboard/KpiCardRow";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
@@ -17,6 +18,7 @@ import {
 import {
   buildIndustryDeepAnalysisSearchParams,
   DEFAULT_INDUSTRY_DEEP_ANALYSIS_QUERY,
+  parseIndustryDeepAnalysisQuery,
 } from "@/lib/industry-excel/client";
 import type {
   IndustryDeepAnalysisData,
@@ -25,9 +27,10 @@ import type {
 } from "@/lib/industry-excel/types";
 
 export function IndustryDeepAnalysisContent() {
-  const [filters, setFilters] = useState<IndustryDeepAnalysisQuery>({
-    ...DEFAULT_INDUSTRY_DEEP_ANALYSIS_QUERY,
-  });
+  const searchParams = useSearchParams();
+  const [filters, setFilters] = useState<IndustryDeepAnalysisQuery>(() =>
+    parseIndustryDeepAnalysisQuery(searchParams),
+  );
   const [resetKey, setResetKey] = useState(0);
   const [data, setData] = useState<IndustryDeepAnalysisData | null>(null);
   const [insights, setInsights] = useState<IndustryDeepInsightsResponse | null>(null);
@@ -35,6 +38,21 @@ export function IndustryDeepAnalysisContent() {
   const [insightsError, setInsightsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [insightsLoading, setInsightsLoading] = useState(true);
+
+  const handleFiltersChange = useCallback(
+    (patch: Partial<IndustryDeepAnalysisQuery>) => {
+      setFilters((prev) => {
+        const next = { ...prev, ...patch };
+        const unchanged =
+          next.sidoCode === prev.sidoCode &&
+          next.regionLabel === prev.regionLabel &&
+          next.majorCode === prev.majorCode &&
+          next.compare === prev.compare;
+        return unchanged ? prev : next;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -118,7 +136,7 @@ export function IndustryDeepAnalysisContent() {
       <DashboardFilterBar>
         <DeepAnalysisPageFilters
           filters={filters}
-          onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
+          onFiltersChange={handleFiltersChange}
           onReset={() => {
             setFilters({ ...DEFAULT_INDUSTRY_DEEP_ANALYSIS_QUERY });
             setResetKey((prev) => prev + 1);
@@ -182,6 +200,7 @@ export function IndustryDeepAnalysisContent() {
         <div className="deep-analysis-dashboard__bottom">
           <DashboardCard
             title="연도별 주요 지표 비교"
+            description="(tCO₂eq)"
             className="deep-analysis-dashboard__table dashboard-card--fill"
           >
             {loading && !data ? (

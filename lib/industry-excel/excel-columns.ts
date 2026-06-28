@@ -36,7 +36,7 @@ export const MAJOR_INDUSTRY_COLORS: Record<string, string> = {
 };
 
 export const ALL_EXCEL_INDUSTRY_COLUMNS = [
-  ...new Set(Object.values(EXCEL_COLUMN_BY_MID_VALUE)),
+  ...new Set([...Object.values(EXCEL_COLUMN_BY_MID_VALUE), "여행업"]),
 ];
 
 export function getExcelColumnsForMajor(majorValue: string): string[] {
@@ -99,7 +99,7 @@ export function getMidIndustryDefinitions(): Array<{
   );
 }
 
-/** 심화분석 지역 필터 value → regionLabel */
+/** @deprecated 심화분석은 sidoCode·regionLabel 사용. 구 URL 호환용 */
 export function resolveDeepAnalysisRegionLabel(regionValue: string): string | null {
   switch (regionValue) {
     case "gangwon-gangneung":

@@ -956,6 +956,8 @@ a {
 
 .deep-analysis-table-wrap {
   overflow-x: auto;
+  border: 1px solid #e7f1ea;
+  border-radius: 10px;
 }
 
 .deep-analysis-table {
@@ -968,7 +970,7 @@ a {
 .deep-analysis-table td {
   padding: 0.625rem 0.75rem;
   border-bottom: 1px solid #e7f1ea;
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -1015,6 +1017,27 @@ a {
 
 .deep-analysis-table__change--down {
   color: #059669;
+}
+
+.deep-analysis-table__note {
+  margin: 0;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.6875rem;
+  color: #7a9584;
+  background: #fafdfb;
+  border-top: 1px solid #e7f1ea;
+}
+
+.deep-analysis-dashboard__table .dashboard-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.deep-analysis-dashboard__table .dashboard-card__description {
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .deep-analysis-notice {

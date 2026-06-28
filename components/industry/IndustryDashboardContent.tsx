@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavigatingLink } from "@/components/common/NavigatingLink";
 import { DashboardFilterBar } from "@/components/dashboard/DashboardFilterBar";
 import { KpiCardRow } from "@/components/dashboard/KpiCardRow";
@@ -16,6 +16,7 @@ import {
 } from "@/lib/lazy-dashboard-components";
 import {
   buildIndustryDashboardSearchParams,
+  buildIndustryDeepAnalysisHref,
   DEFAULT_INDUSTRY_DASHBOARD_QUERY,
 } from "@/lib/industry-excel/client";
 import type {
@@ -112,13 +113,18 @@ export function IndustryDashboardContent() {
       ? `기준 기간: ${data.periodLabel}`
       : undefined;
 
+  const deepAnalysisHref = useMemo(
+    () => buildIndustryDeepAnalysisHref(filters),
+    [filters],
+  );
+
   return (
     <>
       <DashboardFilterBar
         actions={
           <NavigatingLink
             className="btn btn--primary"
-            href="/industry/deep-analysis"
+            href={deepAnalysisHref}
           >
             심화분석
           </NavigatingLink>

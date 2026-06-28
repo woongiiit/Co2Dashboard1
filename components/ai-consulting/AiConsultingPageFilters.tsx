@@ -1,15 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
 import { FilterPeriodRange } from "@/components/dashboard/FilterPeriodRange";
 import {
-  DEFAULT_PERIOD_END,
-  DEFAULT_PERIOD_START,
   KOREA_SIDO_OPTIONS,
   getSigunguOptionsForSido,
 } from "@/lib/korea-admin-regions";
-import { DEFAULT_AI_CONSULTING_FILTERS } from "@/lib/ai-consulting/client";
 
 export type AiConsultingFilterState = {
   sidoCode: string;
@@ -32,26 +29,29 @@ export function AiConsultingPageFilters({
     [filters.sidoCode],
   );
 
-  const skipSigunguReset = useRef(true);
-
-  useEffect(() => {
-    if (skipSigunguReset.current) {
-      skipSigunguReset.current = false;
-      return;
-    }
-    onFiltersChange({ sigunguValue: "all" });
-  }, [filters.sidoCode, onFiltersChange]);
-
   useEffect(() => {
     if (filters.sigunguValue === "all") return;
+
     const valid = sigunguOptions.some(
       (option) => option.value === filters.sigunguValue,
     );
-    if (!valid) {
-      const first = sigunguOptions.find((option) => option.value !== "all");
-      if (first) onFiltersChange({ sigunguValue: first.value });
+    if (valid) return;
+
+    const first = sigunguOptions.find((option) => option.value !== "all");
+    if (first && first.value !== filters.sigunguValue) {
+      onFiltersChange({ sigunguValue: first.value });
     }
   }, [filters.sigunguValue, sigunguOptions, onFiltersChange]);
+
+  const handleSidoChange = (sidoCode: string) => {
+    const nextOptions = getSigunguOptionsForSido(sidoCode);
+    const first = nextOptions.find((option) => option.value !== "all");
+
+    onFiltersChange({
+      sidoCode,
+      sigunguValue: first?.value ?? "all",
+    });
+  };
 
   return (
     <>
@@ -60,7 +60,7 @@ export function AiConsultingPageFilters({
         label="시도"
         options={KOREA_SIDO_OPTIONS}
         value={filters.sidoCode}
-        onChange={(value) => onFiltersChange({ sidoCode: value })}
+        onChange={handleSidoChange}
       />
 
       <label className="filter-control">

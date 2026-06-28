@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardPageHeader } from "@/components/dashboard/DashboardPageHeader";
+import { PanelSkeleton } from "@/components/dashboard/PanelSkeleton";
 import { IndustryDeepAnalysisContent } from "@/components/industry/IndustryDeepAnalysisContent";
 
 export const metadata: Metadata = {
@@ -18,7 +20,9 @@ export default function IndustryDeepAnalysisPage() {
       />
 
       <div className="dashboard-content">
-        <IndustryDeepAnalysisContent />
+        <Suspense fallback={<PanelSkeleton variant="chart" label="불러오는 중…" />}>
+          <IndustryDeepAnalysisContent />
+        </Suspense>
       </div>
     </DashboardLayout>
   );

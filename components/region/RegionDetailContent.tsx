@@ -220,6 +220,7 @@ export function RegionDetailContent({ regionLabel }: RegionDetailContentProps) {
           className="dashboard-grid__cell dashboard-grid__cell--insight"
         >
           <RegionDetailInsightPanel
+            regionLabel={regionLabel}
             sections={
               insights?.sections ?? {
                 evaluation: [],

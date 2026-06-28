@@ -1,12 +1,15 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
 import {
   COMPARE_OPTIONS,
   INDUSTRY_FILTER_OPTIONS,
-  REGION_FILTER_OPTIONS,
 } from "@/components/dashboard/filter-options";
+import {
+  KOREA_SIDO_OPTIONS,
+  getSigunguOptionsForSido,
+} from "@/lib/korea-admin-regions";
 import type { IndustryDeepAnalysisQuery } from "@/lib/industry-excel/types";
 
 type DeepAnalysisPageFiltersProps = {
@@ -22,6 +25,21 @@ export function DeepAnalysisPageFilters({
   onReset,
   resetKey,
 }: DeepAnalysisPageFiltersProps) {
+  const sigunguOptions = useMemo(
+    () => getSigunguOptionsForSido(filters.sidoCode),
+    [filters.sidoCode],
+  );
+
+  useEffect(() => {
+    if (filters.regionLabel === "all") return;
+    const valid = sigunguOptions.some(
+      (option) => option.value === filters.regionLabel,
+    );
+    if (!valid) {
+      onFiltersChange({ regionLabel: "all" });
+    }
+  }, [filters.regionLabel, sigunguOptions, onFiltersChange]);
+
   const updateFilter = useCallback(
     (key: keyof IndustryDeepAnalysisQuery, value: string) => {
       onFiltersChange({ [key]: value });
@@ -32,13 +50,33 @@ export function DeepAnalysisPageFilters({
   return (
     <>
       <FilterSelect
-        key={`region-${resetKey}`}
-        id="deep-region"
-        label="지역"
-        options={REGION_FILTER_OPTIONS}
-        value={filters.regionValue}
-        onChange={(value) => updateFilter("regionValue", value)}
+        key={`sido-${resetKey}`}
+        id="deep-sido"
+        label="시도"
+        options={KOREA_SIDO_OPTIONS}
+        value={filters.sidoCode}
+        onChange={(value) =>
+          onFiltersChange({ sidoCode: value, regionLabel: "all" })
+        }
       />
+
+      <label className="filter-control">
+        <span className="filter-control__label">시군구</span>
+        <select
+          key={`sigungu-${resetKey}`}
+          id="deep-sigungu"
+          className="filter-control__select"
+          value={filters.regionLabel}
+          onChange={(e) => updateFilter("regionLabel", e.target.value)}
+        >
+          {sigunguOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
       <FilterSelect
         key={`industry-${resetKey}`}
         id="deep-industry"

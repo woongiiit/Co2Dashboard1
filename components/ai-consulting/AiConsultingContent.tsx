@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { DashboardFilterBar } from "@/components/dashboard/DashboardFilterBar";
 import { KpiCardRow } from "@/components/dashboard/KpiCardRow";
 import { PanelSkeleton } from "@/components/dashboard/PanelSkeleton";
@@ -13,6 +14,7 @@ import {
 import {
   buildAiConsultingSearchParams,
   DEFAULT_AI_CONSULTING_FILTERS,
+  resolveAiConsultingFiltersFromRegionLabel,
 } from "@/lib/ai-consulting/client";
 import type {
   AiConsultingDashboardData,
@@ -26,18 +28,52 @@ const EMPTY_TASKS: PriorityActionTask[] = [
   { id: "long", label: "장기 (3년 ~)", items: [] },
 ];
 
+function buildInitialFilters(searchParams: URLSearchParams): AiConsultingFilterState {
+  const region = searchParams.get("region");
+  if (!region) {
+    return { ...DEFAULT_AI_CONSULTING_FILTERS };
+  }
+
+  const patch = resolveAiConsultingFiltersFromRegionLabel(region);
+  if (!patch) {
+    return { ...DEFAULT_AI_CONSULTING_FILTERS };
+  }
+
+  return {
+    ...DEFAULT_AI_CONSULTING_FILTERS,
+    ...patch,
+  };
+}
+
 export function AiConsultingContent() {
-  const [draftFilters, setDraftFilters] = useState<AiConsultingFilterState>({
-    ...DEFAULT_AI_CONSULTING_FILTERS,
-  });
-  const [appliedFilters, setAppliedFilters] = useState<AiConsultingFilterState>({
-    ...DEFAULT_AI_CONSULTING_FILTERS,
-  });
+  const searchParams = useSearchParams();
+
+  const [draftFilters, setDraftFilters] = useState<AiConsultingFilterState>(() =>
+    buildInitialFilters(searchParams),
+  );
+  const [appliedFilters, setAppliedFilters] = useState<AiConsultingFilterState>(() =>
+    buildInitialFilters(searchParams),
+  );
   const [dashboard, setDashboard] = useState<AiConsultingDashboardData | null>(null);
   const [insights, setInsights] = useState<AiConsultingInsightsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [insightsLoading, setInsightsLoading] = useState(true);
+
+  const handleFiltersChange = useCallback(
+    (patch: Partial<AiConsultingFilterState>) => {
+      setDraftFilters((prev) => {
+        const next = { ...prev, ...patch };
+        const unchanged =
+          next.sidoCode === prev.sidoCode &&
+          next.sigunguValue === prev.sigunguValue &&
+          next.periodStart === prev.periodStart &&
+          next.periodEnd === prev.periodEnd;
+        return unchanged ? prev : next;
+      });
+    },
+    [],
+  );
 
   const fetchData = useCallback(async (filters: AiConsultingFilterState) => {
     if (filters.sigunguValue === "all") {
@@ -125,9 +161,7 @@ export function AiConsultingContent() {
       <DashboardFilterBar>
         <AiConsultingPageFilters
           filters={draftFilters}
-          onFiltersChange={(patch) =>
-            setDraftFilters((prev) => ({ ...prev, ...patch }))
-          }
+          onFiltersChange={handleFiltersChange}
         />
         <div className="dashboard-filter__apply">
           <AiConsultingFilterApplyButton

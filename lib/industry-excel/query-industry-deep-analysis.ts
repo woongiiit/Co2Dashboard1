@@ -8,10 +8,11 @@ import { getIndustryKpiIconSrc } from "@/lib/industry-kpi-icons";
 import {
   getExcelColumnsForMajor,
   getMajorIndustryDefinitions,
-  resolveDeepAnalysisRegionLabel,
 } from "@/lib/industry-excel/excel-columns";
 import {
   buildIndustryCompareReliability,
+  filterIndustryScopeRows,
+  formatIndustryScopeLabel,
   formatPeriodLabel,
   loadRegionExcelRows,
   sumIndustryColumns,
@@ -56,11 +57,11 @@ function filterDeepAnalysisRows(
   allRows: RegionExcelRow[],
   query: IndustryDeepAnalysisQuery,
 ): RegionExcelRow[] {
-  const regionLabel = resolveDeepAnalysisRegionLabel(query.regionValue);
-
-  return allRows.filter((row) => {
-    if (regionLabel && row.regionLabel !== regionLabel) return false;
-    return isYmInRange(row.ym, PERIOD_START, PERIOD_END);
+  return filterIndustryScopeRows(allRows, {
+    sidoCode: query.sidoCode,
+    regionLabel: query.regionLabel,
+    periodStart: PERIOD_START,
+    periodEnd: PERIOD_END,
   });
 }
 
@@ -220,11 +221,11 @@ function buildYoyGrowth(
 function formatChangeCell(
   current: number,
   previous: number,
-): { text: string; direction: "up" | "down" } {
+): { text: string; direction: "up" | "down" | "neutral" } {
   const change = formatChangePercent(current, previous);
   return {
-    text: change.text.startsWith("-") ? change.text : `+${change.text}`,
-    direction: change.direction === "down" ? "down" : "up",
+    text: change.text,
+    direction: change.direction,
   };
 }
 
@@ -310,15 +311,7 @@ function buildComparisonRows(
   ];
 }
 
-export function parseIndustryDeepAnalysisQuery(
-  searchParams: URLSearchParams,
-): IndustryDeepAnalysisQuery {
-  return {
-    regionValue: searchParams.get("region") ?? "all",
-    majorCode: searchParams.get("industry") ?? "all",
-    compare: searchParams.get("compare") === "prev" ? "prev" : "yoy",
-  };
-}
+export { parseIndustryDeepAnalysisQuery } from "@/lib/industry-excel/client";
 
 export function queryIndustryDeepAnalysis(
   query: IndustryDeepAnalysisQuery,
@@ -334,11 +327,18 @@ export function queryIndustryDeepAnalysis(
 
   const monthlyTrend = buildMonthlyTrend(rows, columns);
   const major = INDUSTRY_CLASSIFICATION.find((item) => item.value === query.majorCode);
-  const regionLabel = resolveDeepAnalysisRegionLabel(query.regionValue);
 
   return {
     periodLabel: formatPeriodLabel(PERIOD_START, PERIOD_END),
-    scopeLabel: regionLabel ?? "전국",
+    scopeLabel: formatIndustryScopeLabel({
+      sidoCode: query.sidoCode,
+      regionLabel: query.regionLabel,
+      periodStart: PERIOD_START,
+      periodEnd: PERIOD_END,
+      compare: query.compare,
+      majorCode: query.majorCode,
+      midCode: "all",
+    }),
     industryLabel: major?.label ?? "전체 업종",
     kpi: buildYearlyKpi(rows, columns),
     monthlyTrend,

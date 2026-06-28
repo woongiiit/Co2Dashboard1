@@ -228,3 +228,5 @@ python data/processor/convert_region_excel.py
 | 2026-06-21 | `/industry`·`/industry/deep-analysis` — 엑셀(지역 JSON) 업종 컬럼 집계 API·HF 연동 |
 | 2026-06-21 | `/api/industry/dashboard`, `/insights`, `/deep-analysis`, `/deep-analysis/insights` 추가 |
 | 2026-06-21 | `/ai-consulting` — 지역 JSON 기반 KPI·섹션별 HF 프롬pt·`/api/ai-consulting/dashboard`·`/insights` 연동 |
+| 2026-06-21 | 신규 엑셀 `★최종★탄소발자국_수식_산정(시안용).xlsx` 전환 — 2행 헤더 변환기·JSON formatVersion 2 (tCO₂eq)·구 파일 `region/archive/` 이동 |
+| 2026-06-21 | `/industry/deep-analysis` — 지역 필터를 시도·시군구(258개) 체계로 확장, 업종 중심 분석 필터 연동 유지 |

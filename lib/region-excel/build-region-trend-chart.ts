@@ -1,7 +1,6 @@
 import type { EChartsOption } from "echarts";
 import {
   MONTH_LABELS,
-  TREND_Y_AXIS_MAX,
   TREND_YEAR_META,
   type TrendYear,
 } from "@/lib/charts/monthly-carbon-trend-data";
@@ -10,11 +9,47 @@ import type { RegionTrendSeries } from "@/lib/region-excel/types";
 
 const TREND_YEARS: TrendYear[] = ["2023", "2024", "2025", "2026"];
 
+/** 관측값 min/max 기준 Y축 — 0 고정·과대 스케일 대신 데이터 구간에 맞춰 연도별 추세를 구분 */
+function computeObservedYAxisRange(values: number[]): {
+  min: number;
+  max: number;
+  interval: number;
+} {
+  if (values.length === 0) {
+    return { min: 0, max: 2_500_000, interval: 500_000 };
+  }
+
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const span = Math.max(maxValue - minValue, maxValue * 0.02);
+  const padding = span * 0.08;
+
+  const interval = niceTickStep(span + padding * 2, 4);
+  const min = Math.floor((minValue - padding) / interval) * interval;
+  const max = Math.ceil((maxValue + padding) / interval) * interval;
+
+  return { min: Math.max(0, min), max, interval };
+}
+
+function niceTickStep(span: number, targetTicks: number): number {
+  const rough = span / Math.max(1, targetTicks);
+  const magnitude = 10 ** Math.floor(Math.log10(rough));
+  const normalized = rough / magnitude;
+  const niceUnit =
+    normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return niceUnit * magnitude;
+}
+
 export function buildRegionTrendChartOptions(trend: RegionTrendSeries): EChartsOption {
   const yearMeta = {
     ...TREND_YEAR_META,
     "2024": { ...TREND_YEAR_META["2024"], color: "#2F8F5B" },
   };
+
+  const allValues = TREND_YEARS.flatMap((year) =>
+    (trend[year] ?? []).filter((value): value is number => value != null && value > 0),
+  );
+  const { min: yMin, max: yMax, interval } = computeObservedYAxisRange(allValues);
 
   const series = TREND_YEARS.map((year) => {
     const meta = yearMeta[year];
@@ -27,7 +62,7 @@ export function buildRegionTrendChartOptions(trend: RegionTrendSeries): EChartsO
       symbolSize: 6,
       showSymbol: true,
       lineStyle: {
-        width: 2,
+        width: meta.dashed ? 2 : 2.5,
         color: meta.color,
         type: meta.dashed ? ("dashed" as const) : ("solid" as const),
       },
@@ -36,20 +71,12 @@ export function buildRegionTrendChartOptions(trend: RegionTrendSeries): EChartsO
         borderColor: "#fff",
         borderWidth: 1,
       },
-      emphasis: { focus: "series" as const },
+      emphasis: {
+        focus: "series" as const,
+        lineStyle: { width: 3.5 },
+      },
     };
   });
-
-  const maxValue = Math.max(
-    0,
-    ...TREND_YEARS.flatMap((year) =>
-      (trend[year] ?? []).filter((value): value is number => value != null),
-    ),
-  );
-  const yMax = Math.max(
-    TREND_Y_AXIS_MAX,
-    Math.ceil(maxValue / 500_000) * 500_000,
-  );
 
   return {
     animationDuration: 600,
@@ -91,9 +118,9 @@ export function buildRegionTrendChartOptions(trend: RegionTrendSeries): EChartsO
     },
     yAxis: {
       type: "value",
-      min: 0,
+      min: yMin,
       max: yMax,
-      interval: Math.max(500_000, yMax / 5),
+      interval,
       axisLine: { show: false },
       axisTick: { show: false },
       axisLabel: {
