@@ -9,6 +9,8 @@ import {
   type AiConsultingMidIndustryItem,
   type AiConsultingSigunguProfile,
 } from "@/lib/ai-consulting/insight-data-profile";
+import type { TourismWebSearchResult } from "@/lib/web-search/types";
+import { formatTourismWebSearchForPrompt } from "@/lib/web-search/search-tourism-context";
 
 export type AiConsultingInsightContext = {
   scope: AiConsultingScope;
@@ -19,6 +21,7 @@ export type AiConsultingInsightContext = {
   sectorTop5: Array<{ name: string; share: string; value: string }>;
   midIndustryTop8: AiConsultingMidIndustryItem[];
   sigunguProfile: AiConsultingSigunguProfile | null;
+  webTourism: TourismWebSearchResult | null;
   radar: {
     indicators: string[];
     region: number[];
@@ -40,6 +43,7 @@ function formatKpiLine(item: {
 export function buildAiConsultingInsightContext(
   query: AiConsultingQuery,
   dashboard: AiConsultingDashboardData,
+  webTourism: TourismWebSearchResult | null = null,
 ): AiConsultingInsightContext {
   return {
     scope: query.scope,
@@ -54,6 +58,7 @@ export function buildAiConsultingInsightContext(
     })),
     midIndustryTop8: buildMidIndustryTopItems(query, 8),
     sigunguProfile: buildSigunguInsightProfile(query),
+    webTourism,
     radar: dashboard.radar,
     compareReliability: dashboard.compareReliability,
   };
@@ -62,9 +67,10 @@ export function buildAiConsultingInsightContext(
 const REGIONAL_WRITING_RULES = `
 ## 지역 특화 작성 원칙 (필수)
 - "대중교통 이용", "친환경 숙소 선택", "일회용품 줄이기" 등 **전국 어디에나 해당하는 문장만 나열하지 마세요**.
-- **지역명·시도명·상위 중분류 업종·배출 구조**를 근거로, 이 지역만 해당하는 장소·코스·체험·정책을 구체적으로 쓰세요.
+- 문장을 **"{지역명}에서는…" / "{지역명} [카테고리]…"로 반복 시작하지 마세요**. 주어를 바꾸거나 명소·업종으로 시작하세요.
+- **지역명·시도명·상위 중분류 업종·배출 구조·웹 검색 지명**을 근거로, 이 지역만 해당하는 장소·코스·체험·정책을 구체적으로 쓰세요.
 - 엑셀에 없는 **배출량·비율·순위 수치는 절대 만들지 마세요**.
-- **관광명소·지명·체험**은 해당 지역에 일반적으로 알려진 것을 활용해 연결할 수 있습니다(수치와 혼동 금지).
+- **관광명소·지명**은 제공된 **웹 검색 스니펫/지명 후보**에 나온 것을 우선 사용하세요. 목록이 있으면 목록 밖 지명을 새로 만들지 마세요.
 - 각 섹션마다 최소 1개는 **지명·업종·동선·패키지** 등 고유 표현을 포함하세요.`;
 
 const JSON_OUTPUT_RULES = `
@@ -177,10 +183,10 @@ function buildSectionGuideSigungu(regionLabel: string): string {
   return `
 ## 섹션별 작성 지침
 1. **regionalEvaluation** (3~4문장): ${regionLabel}의 순위·상위 **대분류·중분류**·추세·peak 시즌을 **수치와 업종명**으로 진단. 다른 지역과 바꿔도 되는 일반론 금지.
-2. **travelerGuide**: id별 1~2문장. **이 지역의 실제 이동·식음·체험**을 상위 중분류 업종과 연결(예: 육상운송↑ → 시내·근교 **구체 동선**). 각 description에 **지명 또는 업종명** 1개 이상.
+2. **travelerGuide**: id별 1~2문장. **웹 검색 지명 + 상위 중분류 업종**을 연결한 구체 동선/체류. 각 description에 **검색 지명 또는 업종명** 1개 이상. "{지역명}에서는"으로 시작 금지.
 3. **governmentConsulting** (4~6개): 상위 업종·peak·비교 격차를 반영한 **지자체 실행안**(인프라·인센티브·모니터링). "대중교통 확대"만 단독 사용 금지 — **어디·어떤 업종·어떤 시즌**인지 명시.
-4. **priorityActions**: 단기/중기/장기 각 2~3개. **중분류 업종명·지역명**을 과제에 포함.
-5. **oneLineRecommendation** (2~3문장, 150~220자): **저탄소 관광 패키지** 1개 제안 — 이 지역 **관광명소·체험 2~3개**를 하나의 동선/코스로 묶고, 상위 배출 업종(이동·식음 등) 관점에서 **왜 탄소가 적은지** 설명. 예: "○○·△△·□□을 도보·대중교통으로 묶은 ○일 코스는 장거리 이동·렌터카 의존을 줄여 운송 배출(39%)을 낮출 수 있다."`;
+4. **priorityActions**: 단기/중기/장기 각 2~3개. **중분류 업종명·검색 지명 또는 거점**을 과제에 포함.
+5. **oneLineRecommendation** (2~3문장, 150~220자): **저탄소 관광 패키지** 1개 — **웹 검색 명소 2~3개**를 하나의 동선으로 묶고, 상위 배출 업종 관점에서 **왜 탄소가 적은지** 엑셀 수치로 설명.`;
 }
 
 const SECTION_GUIDE_AGGREGATE = `
@@ -198,12 +204,14 @@ export function buildAiConsultingInsightUserPrompt(
     ? ` (${context.sigunguProfile.sidoNm})`
     : "";
 
-  return `아래는 /ai-consulting **시군구** 분석용 **엑셀 데이터 + 지역 프로필**입니다. 위 JSON 형식으로 5개 섹션을 작성하세요.
+  return `아래는 /ai-consulting **시군구** 분석용 **엑셀 데이터 + 웹 검색 관광 맥락**입니다. 위 JSON 형식으로 5개 섹션을 작성하세요.
 
 ## 분석 조건
 - 지역: ${context.regionLabel}${sidoHint}
 - 기간: ${context.periodLabel}
 - 비교: ${context.compareMode}
+
+${formatTourismWebSearchForPrompt(context.webTourism)}
 
 ${buildInsightDataBlock(context)}
 ${buildSectionGuideSigungu(context.regionLabel)}`;
@@ -224,6 +232,7 @@ export function buildAiConsultingAggregateInsightUserPrompt(
 - 기간: ${context.periodLabel}
 - 비교: ${context.compareMode}
 
+${context.scope === "sido" ? `${formatTourismWebSearchForPrompt(context.webTourism)}\n` : ""}
 ${buildInsightDataBlock(context)}
 ${SECTION_GUIDE_AGGREGATE}`;
 }

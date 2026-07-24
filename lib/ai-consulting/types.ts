@@ -64,4 +64,5 @@ export type AiConsultingInsightsResponse = {
   regionLabel: string;
   model?: string;
   warning?: string;
+  webSearchWarning?: string;
 };

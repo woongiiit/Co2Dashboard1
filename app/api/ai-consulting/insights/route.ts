@@ -29,6 +29,7 @@ export async function GET(request: Request) {
       regionLabel: dashboard.regionLabel,
       model: generated.model,
       warning: generated.warning,
+      webSearchWarning: generated.webSearchWarning,
     };
 
     return NextResponse.json(body);
