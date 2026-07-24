@@ -12,7 +12,7 @@ const env = Object.fromEntries(
 );
 
 const apiKey = env.HUGGINGFACE_API_KEY;
-const model = env.HUGGINGFACE_MODEL || "Qwen/Qwen3.5-35B-A3B";
+const model = env.HUGGINGFACE_MODEL || "Qwen/Qwen3.5-397B-A17B";
 const apiUrl =
   env.HUGGINGFACE_API_URL || "https://router.huggingface.co/v1/chat/completions";
 

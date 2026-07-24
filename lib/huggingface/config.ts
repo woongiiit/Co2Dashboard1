@@ -10,7 +10,7 @@ export type HuggingfaceConfig = {
 export function getHuggingfaceConfig(): HuggingfaceConfig {
   const apiKey = process.env.HUGGINGFACE_API_KEY?.trim() || undefined;
   const model =
-    process.env.HUGGINGFACE_MODEL?.trim() || "Qwen/Qwen3.5-35B-A3B";
+    process.env.HUGGINGFACE_MODEL?.trim() || "Qwen/Qwen3.5-397B-A17B";
   const apiUrl =
     process.env.HUGGINGFACE_API_URL?.trim() ||
     "https://router.huggingface.co/v1/chat/completions";
