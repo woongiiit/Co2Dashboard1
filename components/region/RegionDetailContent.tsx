@@ -216,6 +216,8 @@ export function RegionDetailContent({ regionLabel }: RegionDetailContentProps) {
         <DashboardCard
           title="AI 인사이트"
           className="dashboard-grid__cell dashboard-grid__cell--insight"
+          collapsible
+          defaultCollapsed
         >
           <RegionDetailInsightPanel
             regionLabel={regionLabel}

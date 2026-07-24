@@ -45,7 +45,7 @@ export function RegionDetailInsightPanel({
 
       {loading ? (
         <p className="region-detail-insight__loading" aria-live="polite">
-          Hugging Face API로 지역 인사이트 생성 중…
+          지역 인사이트 생성 중…
         </p>
       ) : null}
 
