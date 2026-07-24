@@ -27,8 +27,8 @@ const FLOW_STEPS = [
   },
   {
     step: 3,
-    title: "보정계수 적용 (AHP 기반)",
-    lines: ["전문가 AHP 가중", "3대 보정요인", "지역 특성 반영"],
+    title: "보정계수 적용 (전문가 가중)",
+    lines: ["전문가조사 조정승수", "중분류 상대가중치", "지역 특성 반영"],
   },
   {
     step: 4,
@@ -48,8 +48,8 @@ const FACTOR_CARDS = [
     lines: ["6대분류·22중분류", "단위: kgCO₂e/원"],
   },
   {
-    title: "AHP 보정",
-    lines: ["전문가 분석", "3대 보정요인", "가중치 벡터"],
+    title: "전문가 가중",
+    lines: ["전문가조사 조정승수", "중분류 상대가중치", "평균 1 기준"],
   },
   {
     title: "지역 에너지 보정",
@@ -65,13 +65,13 @@ const DATA_SCOPE = [
   { label: "기간", value: "2023.01 ~ 2026.04" },
   { label: "지역", value: "250개 시군구" },
   { label: "업종", value: "6대분류·22중분류" },
-  { label: "버전", value: "관광행동기반 v1.0" },
+  { label: "버전", value: "CARD_최종 260719" },
 ] as const;
 
 const FAQ_ITEMS = [
   {
     q: "단순 합산인가요?",
-    a: "소비 × 배출계수 × 보정계수를 적용한 구조적 산정입니다.",
+    a: "소비 × 배출계수 × 전문가 조정승수 × 지역 에너지 보정을 적용한 구조적 산정입니다.",
   },
   {
     q: "지자체 차이는?",
@@ -182,7 +182,7 @@ function DataScopeDownloadButton({ className }: DataScopeDownloadButtonProps) {
       const blob = await response.blob();
       const filename =
         parseDownloadFilename(response.headers.get("Content-Disposition")) ??
-        "탄소발자국_수식_산정(시안용).xlsx";
+        "CARD_최종(260719).xlsx";
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
@@ -320,15 +320,12 @@ export function CoverCalculationGuideDialog({
                 <h3 className="calc-guide-section__title">산정식(개요)</h3>
                 <p className="calc-guide-formula__equation">
                   최종 관광 탄소발자국 (kgCO₂e) = Σ [ (업종별 소비금액<sub>i</sub> ×
-                  업종별 탄소배출계수<sub>i</sub> × AHP 보정계수<sub>k</sub> × 지역
+                  업종별 탄소배출계수<sub>i</sub> × 전문가 조정승수<sub>i</sub> × 지역
                   에너지 보정계수) + 이동 관련 탄소발자국 ]
                 </p>
                 <p className="calc-guide-formula__legend">
                   <span>
                     <em>i</em>: 중분류 업종
-                  </span>
-                  <span>
-                    <em>k</em>: 보정요인
                   </span>
                   <span>
                     <em>reg</em>: 지역

@@ -14,7 +14,7 @@ data/excel/
 
 ## 사용 방법
 
-1. **운영 원본**: `region/★최종★탄소발자국_수식_산정(시안용).xlsx`
+1. **운영 원본**: `region/■중요■CARD_최종(260719).xlsx`
 2. JSON 변환:
    ```bash
    pip install -r data/processor/requirements.txt
@@ -22,23 +22,25 @@ data/excel/
    python data/processor/validate_region_json.py
    ```
 3. 앱은 `region/region-dashboard.json` (formatVersion 2, tCO₂eq)만 읽습니다.
-4. 이전 임의데이터 파일은 `region/archive/`에 보관합니다.
+4. 이전 원본은 `region/archive/`에 보관합니다.
 
 ### 폴더 구조 (region)
 
 ```
 data/excel/region/
-├── ★최종★탄소발자국_수식_산정(시안용).xlsx   # 운영 원본
-├── region-dashboard.json                      # 변환 결과
-└── archive/                                   # 구버전 xlsx
+├── ■중요■CARD_최종(260719).xlsx   # 운영 원본
+├── region-dashboard.json            # 변환 결과
+└── archive/                         # 구버전 xlsx
 ```
+
+> 산출 컬럼(A~H) 캐시가 비어 있어도 변환기는 카드×계수×전문가 조정승수×에너지·철도 입력으로 재계산합니다.
 
 ## 레거시 안내
 
 | formatVersion | carbonRaw 단위 | 원본 |
 |---------------|----------------|------|
 | 1 | raw (÷1,000,000 → tCO₂eq) | 대시보드_임의데이터_…xlsx |
-| 2 | tCO₂eq (그대로 사용) | ★최종★…xlsx |
+| 2 | tCO₂eq (그대로 사용) | CARD_최종 / ★최종★ 수식 산정 |
 
 ---
 
