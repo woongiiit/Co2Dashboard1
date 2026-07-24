@@ -6,16 +6,18 @@
   pip install -r data/processor/requirements.txt
   python data/processor/convert_region_excel.py
 
-기본 입력: data/excel/region/★최종★탄소발자국_수식_산정(시안용).xlsx
+기본 입력: data/excel/region/■중요■CARD_최종(260719).xlsx
 기본 출력: data/excel/region/region-dashboard.json
 
 JSON carbonRaw·industries 값은 tCO₂eq 단위로 저장합니다 (formatVersion 2).
+Excel 산출 컬럼(A~H) 캐시가 비어 있으면 카드×계수×가중치×에너지·철도 입력으로 재계산합니다.
 """
 
 from __future__ import annotations
 
 import json
 import sys
+from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -28,7 +30,7 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[2]
 REGION_DIR = ROOT / "data" / "excel" / "region"
 DEFAULT_OUTPUT = REGION_DIR / "region-dashboard.json"
-PREFERRED_SOURCE = "★최종★탄소발자국_수식_산정(시안용).xlsx"
+PREFERRED_SOURCE = "■중요■CARD_최종(260719).xlsx"
 
 CARBON_HEADERS = ("탄소배출량 ", "탄소배출량")
 INDEX_HEADER = "탄소발자국 지수"
@@ -64,6 +66,9 @@ INDUSTRY_COLUMNS = [
     "뷰티",
     "의료관광",
 ]
+
+# 수식 파일에 존재하는 중분류 (여행업 제외)
+FORMULA_INDUSTRIES = [name for name in INDUSTRY_COLUMNS if name != "여행업"]
 
 # 신규 수식 파일에 없는 컬럼 — JSON에는 0으로 포함
 MISSING_IN_FORMULA = ("여행업",)
@@ -200,6 +205,95 @@ def convert_legacy_rows(rows: list[tuple]) -> tuple[list[dict], dict]:
     return records, meta_extra
 
 
+def find_header_index(composites: list[str], *needles: str) -> int | None:
+    for idx, header in enumerate(composites):
+        if all(needle in header for needle in needles):
+            return idx
+    return None
+
+
+def resolve_formula_input_columns(composites: list[str]) -> dict:
+    card_cols: dict[str, int] = {}
+    coef_cols: dict[str, int] = {}
+    weight_cols: dict[str, int] = {}
+
+    for idx, header in enumerate(composites):
+        if "||" not in header:
+            continue
+        group, sub = header.split("||", 1)
+        if sub not in FORMULA_INDUSTRIES:
+            continue
+        if group.startswith("카드 사용량"):
+            card_cols[sub] = idx
+        elif group.startswith("탄소배출계수"):
+            coef_cols[sub] = idx
+        elif group.startswith("중분류 업종별 가중치"):
+            weight_cols[sub] = idx
+
+    ewrt_idx = find_header_index(composites, "에너지 조정승수", "보정계수")
+    rail_coef_idx = find_header_index(composites, "철도 배출", "철도배출계수")
+    rail_pkm_idx = find_header_index(composites, "철도 배출", "철도_인km")
+
+    missing = [
+        name
+        for name in FORMULA_INDUSTRIES
+        if name not in card_cols or name not in coef_cols or name not in weight_cols
+    ]
+    if missing:
+        raise KeyError(f"입력 업종 컬럼 누락: {', '.join(missing)}")
+    if ewrt_idx is None or rail_coef_idx is None or rail_pkm_idx is None:
+        raise KeyError("에너지/철도 입력 컬럼을 찾을 수 없습니다.")
+
+    return {
+        "card": card_cols,
+        "coef": coef_cols,
+        "weight": weight_cols,
+        "ewrt": ewrt_idx,
+        "rail_coef": rail_coef_idx,
+        "rail_pkm": rail_pkm_idx,
+    }
+
+
+def compute_row_from_inputs(
+    row: tuple,
+    input_cols: dict,
+) -> tuple[dict[str, float], float]:
+    """카드×계수×가중치×EWrt + 철도 → (업종별 C mg, 총 kg)."""
+    ewrt = parse_number(row[input_cols["ewrt"]])
+    industries_mg: dict[str, float] = {}
+    card_total_mg = 0.0
+
+    for name in FORMULA_INDUSTRIES:
+        card = parse_number(row[input_cols["card"][name]])
+        coef = parse_number(row[input_cols["coef"][name]])
+        weight = parse_number(row[input_cols["weight"][name]])
+        c_mg = card * coef * weight * ewrt
+        industries_mg[name] = c_mg
+        card_total_mg += c_mg
+
+    rail_mg = parse_number(row[input_cols["rail_coef"]]) * parse_number(
+        row[input_cols["rail_pkm"]]
+    )
+    total_kg = (card_total_mg + rail_mg) / 1_000_000
+    return industries_mg, total_kg
+
+
+def formula_cache_usable(rows: list[tuple], c_cols: dict[str, int]) -> bool:
+    """C블록·H(kg) 캐시가 실제 수치로 채워져 있는지 샘플 검사."""
+    sample = 0
+    filled = 0
+    first_c = next(iter(c_cols.values()))
+    for row in rows[2:]:
+        if row is None or all(cell is None or str(cell).strip() == "" for cell in row):
+            continue
+        sample += 1
+        if row[first_c] is not None or row[FORMULA_IDX_KG] is not None:
+            filled += 1
+        if sample >= 20:
+            break
+    return sample > 0 and filled == sample
+
+
 def convert_formula_rows(rows: list[tuple]) -> tuple[list[dict], dict]:
     if len(rows) < 3:
         raise ValueError("수식 파일은 헤더 2행 + 데이터 행이 필요합니다.")
@@ -214,19 +308,21 @@ def convert_formula_rows(rows: list[tuple]) -> tuple[list[dict], dict]:
 
     c_cols = {
         name: col_map[f"{FORMULA_C_BLOCK}||{name}"]
-        for name in INDUSTRY_COLUMNS
-        if name not in MISSING_IN_FORMULA and f"{FORMULA_C_BLOCK}||{name}" in col_map
+        for name in FORMULA_INDUSTRIES
+        if f"{FORMULA_C_BLOCK}||{name}" in col_map
     }
 
-    missing_in_source = [
-        name
-        for name in INDUSTRY_COLUMNS
-        if name not in MISSING_IN_FORMULA and name not in c_cols
-    ]
+    missing_in_source = [name for name in FORMULA_INDUSTRIES if name not in c_cols]
     if missing_in_source:
         raise KeyError(f"C블록 업종 컬럼 누락: {', '.join(missing_in_source)}")
 
-    records: list[dict] = []
+    use_cache = formula_cache_usable(rows, c_cols)
+    input_cols = None if use_cache else resolve_formula_input_columns(composites)
+
+    # 1차 패스: 업종·총량 수집 (지수는 연도 평균 필요)
+    pending: list[dict] = []
+    year_totals: dict[int, list[float]] = defaultdict(list)
+
     for row in rows[2:]:
         if row is None or all(cell is None or str(cell).strip() == "" for cell in row):
             continue
@@ -236,21 +332,61 @@ def convert_formula_rows(rows: list[tuple]) -> tuple[list[dict], dict]:
         year = int(parse_number(row[col_map["year"]]))
         month = int(parse_number(row[col_map["month"]]))
 
+        if use_cache:
+            industries_mg = {
+                name: parse_number(row[idx]) for name, idx in c_cols.items()
+            }
+            total_kg = parse_number(row[FORMULA_IDX_KG])
+            carbon_index = parse_number(row[FORMULA_IDX_INDEX])
+        else:
+            assert input_cols is not None
+            industries_mg, total_kg = compute_row_from_inputs(row, input_cols)
+            carbon_index = None  # 2차 패스에서 연평균 기준 산출
+
         industries_t = {
-            name: parse_number(row[idx]) / MG_TO_TCO2EQ for name, idx in c_cols.items()
+            name: industries_mg.get(name, 0.0) / MG_TO_TCO2EQ
+            for name in FORMULA_INDUSTRIES
         }
         for name in MISSING_IN_FORMULA:
             industries_t[name] = 0.0
 
+        carbon_t = total_kg / KG_TO_TCO2EQ
+        year_totals[year].append(total_kg)
+
+        pending.append(
+            {
+                "sido": sido,
+                "sgg": sgg,
+                "year": year,
+                "month": month,
+                "carbon_t": carbon_t,
+                "carbon_index": carbon_index,
+                "total_kg": total_kg,
+                "industries_t": industries_t,
+            }
+        )
+
+    year_avg_kg = {
+        year: (sum(values) / len(values) if values else 0.0)
+        for year, values in year_totals.items()
+    }
+
+    records: list[dict] = []
+    for item in pending:
+        carbon_index = item["carbon_index"]
+        if carbon_index is None:
+            avg = year_avg_kg.get(item["year"], 0.0)
+            carbon_index = (item["total_kg"] / avg * 100.0) if avg > 0 else 0.0
+
         append_record(
             records,
-            sido=sido,
-            sgg=sgg,
-            year=year,
-            month=month,
-            carbon_t=parse_number(row[FORMULA_IDX_KG]) / KG_TO_TCO2EQ,
-            carbon_index=parse_number(row[FORMULA_IDX_INDEX]),
-            industries_t=industries_t,
+            sido=item["sido"],
+            sgg=item["sgg"],
+            year=item["year"],
+            month=item["month"],
+            carbon_t=item["carbon_t"],
+            carbon_index=carbon_index,
+            industries_t=item["industries_t"],
         )
 
     meta_extra = {
@@ -260,6 +396,7 @@ def convert_formula_rows(rows: list[tuple]) -> tuple[list[dict], dict]:
         "industrySource": "C_energy_adjusted_mg",
         "carbonSource": "H_total_kg",
         "missingIndustryColumns": list(MISSING_IN_FORMULA),
+        "formulaCache": "excel" if use_cache else "recomputed_from_inputs",
     }
     return records, meta_extra
 
