@@ -113,9 +113,7 @@ export function RegionDetailContent({ regionLabel }: RegionDetailContentProps) {
   };
 
   const insightFooter = insights
-    ? insights.source === "huggingface"
-      ? `기준 기간: ${insights.periodLabel} · Hugging Face${insights.model ? ` (${insights.model})` : ""}`
-      : `기준 기간: ${insights.periodLabel} · 규칙 기반 요약${insights.warning ? ` · ${insights.warning}` : ""}`
+    ? `기준 기간: ${insights.periodLabel}`
     : data?.periodLabel
       ? `기준 기간: ${data.periodLabel}`
       : undefined;
