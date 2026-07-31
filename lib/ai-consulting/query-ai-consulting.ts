@@ -28,6 +28,7 @@ import type {
 import { buildMidIndustryTopItems } from "@/lib/ai-consulting/insight-data-profile";
 import type { RegionDashboardQuery } from "@/lib/region-excel/types";
 import { KOREA_SIDO_OPTIONS } from "@/lib/korea-admin-regions";
+import { compareCriteriaLabel } from "@/lib/dashboard/compare-criteria";
 
 const RADAR_INDICATORS = [
   "총 배출량",
@@ -293,7 +294,7 @@ function buildAggregateKpi(
           : changeDirection === "up"
             ? "up"
             : "neutral",
-      hint: "전년 동기간 대비",
+      hint: compareCriteriaLabel(query.compare),
       icon: "ai-trend",
       iconSrc: getAiConsultingKpiIconSrc("ai-trend"),
     },
@@ -326,6 +327,7 @@ function queryAggregateAiConsultingDashboard(
 }
 
 function buildSigunguKpi(
+  query: AiConsultingQuery,
   detail: ReturnType<typeof queryRegionDetail>,
   sectorEmission: SectorEmissionItem[],
 ): KpiItem[] {
@@ -369,7 +371,7 @@ function buildSigunguKpi(
           : changeDirection === "up"
             ? "up"
             : "neutral",
-      hint: "전년 동기간 대비",
+      hint: compareCriteriaLabel(query.compare),
       icon: "ai-trend",
       iconSrc: getAiConsultingKpiIconSrc("ai-trend"),
     },
@@ -393,7 +395,7 @@ function querySigunguAiConsultingDashboard(
   return {
     regionLabel: detail.regionLabel,
     periodLabel: detail.periodLabel,
-    kpi: buildSigunguKpi(detail, sectorEmission),
+    kpi: buildSigunguKpi(query, detail, sectorEmission),
     sectorEmission,
     radar: buildSigunguRadar(detail, sectorEmission),
     compareReliability: detail.compareReliability,

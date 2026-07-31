@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
 import {
+  COMPARE_CRITERIA_HINT,
   COMPARE_OPTIONS,
   INDUSTRY_FILTER_OPTIONS,
 } from "@/components/dashboard/filter-options";
@@ -90,6 +91,7 @@ export function DeepAnalysisPageFilters({
         id="deep-compare"
         label="비교 기준"
         options={COMPARE_OPTIONS}
+        hint={COMPARE_CRITERIA_HINT}
         value={filters.compare}
         onChange={(value) =>
           updateFilter("compare", value === "prev" ? "prev" : "yoy")

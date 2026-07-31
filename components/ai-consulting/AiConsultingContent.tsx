@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { DashboardFilterBar } from "@/components/dashboard/DashboardFilterBar";
+import { DashboardScopeNotice } from "@/components/dashboard/DashboardScopeNotice";
 import { KpiCardRow } from "@/components/dashboard/KpiCardRow";
 import { PanelSkeleton } from "@/components/dashboard/PanelSkeleton";
 import { AiConsultingContentGrid } from "@/components/ai-consulting/AiConsultingContentGrid";
@@ -16,6 +17,8 @@ import {
   DEFAULT_AI_CONSULTING_FILTERS,
   resolveAiConsultingFiltersFromRegionLabel,
 } from "@/lib/ai-consulting/client";
+import { buildRegionSelectionScopeSummary } from "@/lib/dashboard/scope-summary";
+import { normalizeKoreanNumberUnitSpacing } from "@/lib/format/number-unit";
 import type {
   AiConsultingDashboardData,
   AiConsultingInsightsResponse,
@@ -126,15 +129,63 @@ export function AiConsultingContent() {
     setAppliedFilters({ ...draftFilters });
   };
 
+  const normalizedSections = useMemo(() => {
+    const sections = insights?.sections;
+    if (!sections) {
+      return {
+        regionalEvaluation: [] as string[],
+        travelerGuide: [] as AiConsultingInsightsResponse["sections"]["travelerGuide"],
+        governmentConsulting: [] as string[],
+        oneLineRecommendation: "",
+      };
+    }
+    return {
+      regionalEvaluation: sections.regionalEvaluation.map(
+        normalizeKoreanNumberUnitSpacing,
+      ),
+      travelerGuide: sections.travelerGuide.map((item) => ({
+        ...item,
+        description: normalizeKoreanNumberUnitSpacing(item.description),
+      })),
+      governmentConsulting: sections.governmentConsulting.map(
+        normalizeKoreanNumberUnitSpacing,
+      ),
+      oneLineRecommendation: normalizeKoreanNumberUnitSpacing(
+        sections.oneLineRecommendation,
+      ),
+    };
+  }, [insights]);
+
   const priorityTasks = useMemo((): PriorityActionTask[] => {
     const actions = insights?.sections.priorityActions;
     if (!actions) return EMPTY_TASKS;
     return [
-      { id: "short", label: "단기 (~ 1년)", items: actions.short },
-      { id: "mid", label: "중기 (1 ~ 3년)", items: actions.mid },
-      { id: "long", label: "장기 (3년 ~)", items: actions.long },
+      {
+        id: "short",
+        label: "단기 (~1년)",
+        items: actions.short.map(normalizeKoreanNumberUnitSpacing),
+      },
+      {
+        id: "mid",
+        label: "중기 (1~3년)",
+        items: actions.mid.map(normalizeKoreanNumberUnitSpacing),
+      },
+      {
+        id: "long",
+        label: "장기 (3년~)",
+        items: actions.long.map(normalizeKoreanNumberUnitSpacing),
+      },
     ];
   }, [insights]);
+
+  const scopeSummary = useMemo(
+    () =>
+      buildRegionSelectionScopeSummary(
+        appliedFilters.sidoCode,
+        appliedFilters.sigunguValue,
+      ),
+    [appliedFilters.sidoCode, appliedFilters.sigunguValue],
+  );
 
   const radar = dashboard?.radar ?? {
     indicators: ["총 배출량", "1인당 배출", "산업 집중도", "증가 추세", "감축 잠재력"],
@@ -157,6 +208,11 @@ export function AiConsultingContent() {
         </div>
       </DashboardFilterBar>
 
+      <DashboardScopeNotice
+        title={scopeSummary.title}
+        description={scopeSummary.description}
+      />
+
       {error ? (
         <div className="dashboard-error" role="alert">
           {error}
@@ -170,11 +226,11 @@ export function AiConsultingContent() {
       ) : null}
 
       <AiConsultingContentGrid
-        regionalEvaluation={insights?.sections.regionalEvaluation ?? []}
-        travelerGuide={insights?.sections.travelerGuide ?? []}
-        governmentConsulting={insights?.sections.governmentConsulting ?? []}
+        regionalEvaluation={normalizedSections.regionalEvaluation}
+        travelerGuide={normalizedSections.travelerGuide}
+        governmentConsulting={normalizedSections.governmentConsulting}
         priorityTasks={priorityTasks}
-        oneLineRecommendation={insights?.sections.oneLineRecommendation ?? ""}
+        oneLineRecommendation={normalizedSections.oneLineRecommendation}
         sectorEmission={dashboard?.sectorEmission ?? []}
         radar={radar}
         insightsLoading={insightsLoading}

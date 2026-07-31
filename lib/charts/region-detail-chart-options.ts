@@ -4,6 +4,7 @@ import type {
   RegionDetailIndustryShare,
   RegionDetailMonthlyTrend,
 } from "@/lib/region-excel/types";
+import { formatAxisCo2 } from "@/lib/format/number-unit";
 
 const PIE_COLORS = [
   "#2f8f5b",
@@ -54,7 +55,7 @@ export function buildRegionComparisonOptions(
   const maxValue = Math.max(...items.map((item) => item.value), 1);
 
   return {
-    grid: { left: 8, right: 72, top: 8, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 80, top: 12, bottom: 28, containLabel: true },
     tooltip: {
       trigger: "axis",
       axisPointer: { type: "shadow" },
@@ -73,16 +74,23 @@ export function buildRegionComparisonOptions(
       axisLabel: {
         fontSize: 10,
         color: "#64748b",
-        formatter: (v: number) => formatCo2(v),
+        hideOverlap: true,
+        formatter: (v: number) => formatAxisCo2(v),
       },
       splitLine: { lineStyle: { color: "#f1f5f9" } },
+      splitNumber: 4,
     },
     yAxis: {
       type: "category",
       data: labels,
       axisTick: { show: false },
       axisLine: { show: false },
-      axisLabel: { fontSize: 11, color: "#334155" },
+      axisLabel: {
+        fontSize: 11,
+        color: "#334155",
+        width: 88,
+        overflow: "truncate",
+      },
     },
     series: [
       {

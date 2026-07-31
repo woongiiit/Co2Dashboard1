@@ -13,6 +13,11 @@ export const COMPARE_OPTIONS = [
   { value: "prev", label: "직전 기간 대비" },
 ];
 
+export {
+  COMPARE_CRITERIA_HINT,
+  compareCriteriaLabel,
+} from "@/lib/dashboard/compare-criteria";
+
 export const CARBON_METRIC_OPTIONS = [
   { value: "total", label: "총 관광 탄소발자국" },
   { value: "per-capita", label: "관광객 1인당" },

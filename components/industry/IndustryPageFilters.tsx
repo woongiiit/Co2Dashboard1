@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
 import { FilterPeriodRange } from "@/components/dashboard/FilterPeriodRange";
-import { COMPARE_OPTIONS } from "@/components/dashboard/filter-options";
+import { COMPARE_CRITERIA_HINT, COMPARE_OPTIONS } from "@/components/dashboard/filter-options";
 import { IndustryClassificationFilters } from "@/components/industry/IndustryClassificationFilters";
 import {
   KOREA_SIDO_OPTIONS,
@@ -73,6 +73,7 @@ export function IndustryPageFilters({
         id="industry-compare"
         label="비교 기준"
         options={COMPARE_OPTIONS}
+        hint={COMPARE_CRITERIA_HINT}
         value={filters.compare}
         onChange={(value) =>
           onFiltersChange({ compare: value === "prev" ? "prev" : "yoy" })

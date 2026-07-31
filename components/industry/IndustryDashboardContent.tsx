@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavigatingLink } from "@/components/common/NavigatingLink";
 import { DashboardFilterBar } from "@/components/dashboard/DashboardFilterBar";
+import { DashboardScopeNotice } from "@/components/dashboard/DashboardScopeNotice";
 import { KpiCardRow } from "@/components/dashboard/KpiCardRow";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { AiInsightCard } from "@/components/dashboard/AiInsightCard";
@@ -19,6 +20,7 @@ import {
   buildIndustryDeepAnalysisHref,
   DEFAULT_INDUSTRY_DASHBOARD_QUERY,
 } from "@/lib/industry-excel/client";
+import { buildRegionSelectionScopeSummary } from "@/lib/dashboard/scope-summary";
 import type {
   IndustryDashboardData,
   IndustryDashboardQuery,
@@ -110,6 +112,12 @@ export function IndustryDashboardContent() {
     [filters],
   );
 
+  const scopeSummary = useMemo(
+    () =>
+      buildRegionSelectionScopeSummary(filters.sidoCode, filters.regionLabel),
+    [filters.sidoCode, filters.regionLabel],
+  );
+
   return (
     <>
       <DashboardFilterBar
@@ -127,6 +135,11 @@ export function IndustryDashboardContent() {
           onFiltersChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))}
         />
       </DashboardFilterBar>
+
+      <DashboardScopeNotice
+        title={scopeSummary.title}
+        description={scopeSummary.description}
+      />
 
       {error ? (
         <div className="dashboard-error" role="alert">
@@ -176,7 +189,7 @@ export function IndustryDashboardContent() {
         </div>
 
         <DashboardCard
-          title="선택 업종 월별 탄소발자국 추이"
+          title={`${scopeSummary.title.replace("집계 범위: ", "")} · 선택 업종 월별 탄소발자국 추이`}
           className="industry-dashboard__trend dashboard-card--fill"
         >
           {loading && !data ? (

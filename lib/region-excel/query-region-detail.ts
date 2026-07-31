@@ -372,10 +372,12 @@ function buildDetailKpi(
   const avgIndex = weightedRegionIndex(currentRows);
   const compareIndex = weightedRegionIndex(compareRows);
   const indexChange = formatChangePoint(avgIndex, compareIndex);
+  const compareLabel =
+    query.compare === "prev" ? "직전 기간 대비" : "전년 동기간 대비";
   const changeHint =
     compareReliability.level === "limited"
-      ? "전년 동기간 대비 · 행정구역 개정 주의"
-      : "전년 동기간 대비";
+      ? `${compareLabel} · 행정구역 개정 주의`
+      : compareLabel;
 
   return [
     {

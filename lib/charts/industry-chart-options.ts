@@ -7,6 +7,7 @@ import type {
 } from "@/lib/industry-excel/types";
 import type { RegionTrendSeries } from "@/lib/region-excel/types";
 import { formatScaledCarbonMass } from "@/lib/region-excel/format";
+import { formatAxisCo2, isAttachedUnit } from "@/lib/format/number-unit";
 
 function formatCo2(value: number): string {
   return new Intl.NumberFormat("ko-KR").format(Math.round(value));
@@ -74,7 +75,13 @@ export function buildMajorIndustryBarOptions(
     xAxis: {
       type: "category",
       data: names,
-      axisLabel: { fontSize: 11, color: "#475569", interval: 0 },
+      axisLabel: {
+        fontSize: 11,
+        color: "#475569",
+        interval: 0,
+        rotate: 28,
+        hideOverlap: true,
+      },
       axisTick: { show: false },
     },
     yAxis: {
@@ -85,8 +92,9 @@ export function buildMajorIndustryBarOptions(
       axisLabel: {
         fontSize: 10,
         color: "#64748b",
+        hideOverlap: true,
         formatter: (v: number) =>
-          mode === "absolute" ? formatCo2(v) : `${v}%`,
+          mode === "absolute" ? formatAxisCo2(v) : `${v}%`,
       },
       splitLine: { lineStyle: { color: "#f1f5f9", type: "dashed" } },
     },

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { DashboardFilterBar } from "@/components/dashboard/DashboardFilterBar";
+import { DashboardScopeNotice } from "@/components/dashboard/DashboardScopeNotice";
 import { KpiCardRow } from "@/components/dashboard/KpiCardRow";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
 import { PlaceholderTable } from "@/components/dashboard/PlaceholderTable";
@@ -15,6 +16,7 @@ import {
   DEFAULT_REGION_DASHBOARD_QUERY,
 } from "@/lib/region-excel/client";
 import { buildRegionTrendChartOptions } from "@/lib/region-excel/build-region-trend-chart";
+import { buildRegionDashboardScopeSummary } from "@/lib/dashboard/scope-summary";
 import type { RegionDashboardData, RegionDashboardQuery, RegionInsightsResponse } from "@/lib/region-excel/types";
 
 const RegionMonthlyTrendChart = dynamic(
@@ -113,6 +115,11 @@ export function RegionDashboardContent() {
     [data],
   );
 
+  const scopeSummary = useMemo(
+    () => buildRegionDashboardScopeSummary(filters.sidoCode),
+    [filters.sidoCode],
+  );
+
   const handleFiltersChange = (patch: Partial<RegionDashboardQuery>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
   };
@@ -122,6 +129,11 @@ export function RegionDashboardContent() {
       <DashboardFilterBar>
         <RegionPageFilters filters={filters} onFiltersChange={handleFiltersChange} />
       </DashboardFilterBar>
+
+      <DashboardScopeNotice
+        title={scopeSummary.title}
+        description={scopeSummary.description}
+      />
 
       {error ? (
         <div className="dashboard-error" role="alert">
@@ -160,7 +172,7 @@ export function RegionDashboardContent() {
         </DashboardCard>
 
         <DashboardCard
-          title="전국 월별 관광 탄소발자국 추세"
+          title={scopeSummary.trendTitle}
           description="2023년 · 2024년 · 2025년 · 2026년"
         >
           {loading && !trendOption ? (

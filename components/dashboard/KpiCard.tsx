@@ -1,4 +1,5 @@
 import type { KpiItem } from "@/lib/mock-dashboard-data";
+import { isAttachedUnit } from "@/lib/format/number-unit";
 import { KpiCardIcon } from "./KpiCardIcon";
 
 type KpiCardProps = KpiItem;
@@ -45,6 +46,8 @@ export function KpiCard({
     (icon
       ? !unitOnLabel
       : unitOnValue || (!unitOnLabel && !icon));
+  const unitAttachClass = isAttachedUnit(unit) ? " kpi-card__unit--attach" : "";
+  const valueAttachClass = isAttachedUnit(unit) ? " kpi-card__value--attach" : "";
 
   if (icon) {
     return (
@@ -65,7 +68,7 @@ export function KpiCard({
         </div>
 
         <div className="kpi-card__body">
-          <p className={`kpi-card__value ${valueToneClass}`.trim()}>
+          <p className={`kpi-card__value${valueAttachClass} ${valueToneClass}`.trim()}>
             {showValueArrow ? (
               <span className="kpi-card__arrow" aria-hidden="true">
                 {resolvedValueTone === "up" ? "▲ " : "▼ "}
@@ -73,7 +76,7 @@ export function KpiCard({
             ) : null}
             <span className="kpi-card__number">{value}</span>
             {showUnitBesideValue ? (
-              <span className="kpi-card__unit">{unit}</span>
+              <span className={`kpi-card__unit${unitAttachClass}`}>{unit}</span>
             ) : null}
           </p>
 
@@ -101,7 +104,7 @@ export function KpiCard({
     <article className="kpi-card">
       <p className="kpi-card__label">{label}</p>
 
-      <p className={`kpi-card__value ${valueToneClass}`.trim()}>
+      <p className={`kpi-card__value${valueAttachClass} ${valueToneClass}`.trim()}>
         {showValueArrow ? (
           <span className="kpi-card__arrow" aria-hidden="true">
             {resolvedValueTone === "up" ? "▲ " : "▼ "}
@@ -109,7 +112,7 @@ export function KpiCard({
         ) : null}
         <span className="kpi-card__number">{value}</span>
         {showUnitBesideValue ? (
-          <span className="kpi-card__unit">{unit}</span>
+          <span className={`kpi-card__unit${unitAttachClass}`}>{unit}</span>
         ) : null}
       </p>
 

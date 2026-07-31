@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
 import {
   CARBON_METRIC_OPTIONS,
+  COMPARE_CRITERIA_HINT,
   COMPARE_OPTIONS,
 } from "@/components/dashboard/filter-options";
 import { FilterPeriodRange } from "@/components/dashboard/FilterPeriodRange";
@@ -95,6 +96,7 @@ export function RegionPageFilters({
         id="region-compare"
         label="비교 기준"
         options={COMPARE_OPTIONS}
+        hint={COMPARE_CRITERIA_HINT}
         value={filters.compare}
         onChange={(value) =>
           onFiltersChange({

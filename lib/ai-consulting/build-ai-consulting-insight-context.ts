@@ -11,6 +11,7 @@ import {
 } from "@/lib/ai-consulting/insight-data-profile";
 import type { TourismWebSearchResult } from "@/lib/web-search/types";
 import { formatTourismWebSearchForPrompt } from "@/lib/web-search/search-tourism-context";
+import { formatNumberWithUnit } from "@/lib/format/number-unit";
 
 export type AiConsultingInsightContext = {
   scope: AiConsultingScope;
@@ -36,7 +37,7 @@ function formatKpiLine(item: {
   unit?: string;
   hint?: string;
 }): { label: string; value: string; hint?: string } {
-  const value = [item.value, item.unit].filter(Boolean).join(" ");
+  const value = formatNumberWithUnit(item.value, item.unit);
   return { label: item.label, value, hint: item.hint };
 }
 

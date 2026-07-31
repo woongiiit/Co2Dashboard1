@@ -146,6 +146,27 @@ a {
   font-size: 0.875rem;
 }
 
+.dashboard-scope-notice {
+  padding: 0.75rem 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.dashboard-scope-notice__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.dashboard-scope-notice__desc {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: #475569;
+}
+
 /* —— Filter bar —— */
 
 .dashboard-filter {
@@ -199,10 +220,73 @@ a {
   max-width: 240px;
 }
 
+.filter-control__label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  position: relative;
+}
+
 .filter-control__label {
   font-size: 0.75rem;
   font-weight: 600;
   color: #64748b;
+}
+
+.filter-control__hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border: 1px solid #94a3b8;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.filter-control__hint-bubble {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.4rem);
+  z-index: 30;
+  width: min(18rem, 70vw);
+  padding: 0.6rem 0.7rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+}
+
+.filter-control__hint-line {
+  display: block;
+}
+
+.filter-control__hint-line + .filter-control__hint-line {
+  margin-top: 0.4rem;
+}
+
+.filter-control__hint:hover .filter-control__hint-bubble,
+.filter-control__hint:focus-visible .filter-control__hint-bubble {
+  display: block;
+}
+
+.filter-control__hint:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
 }
 
 .filter-control__select {
@@ -386,6 +470,10 @@ a {
   gap: 0.25rem 0.5rem;
 }
 
+.kpi-card__value--attach {
+  gap: 0.25rem 0;
+}
+
 .kpi-card__number {
   font-size: 1.375rem;
   font-weight: 700;
@@ -397,6 +485,10 @@ a {
   font-size: 0.8125rem;
   font-weight: 600;
   color: #475569;
+}
+
+.kpi-card__unit--attach {
+  margin-left: 0.1rem;
 }
 
 .kpi-card__change {
@@ -581,6 +673,10 @@ a {
   align-items: baseline;
   flex-wrap: nowrap;
   gap: 0.2rem 0.35rem;
+}
+
+.kpi-card--rich .kpi-card__value--attach {
+  gap: 0.2rem 0;
 }
 
 .kpi-card--rich .kpi-card__number {

@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { FilterPeriodRange } from "@/components/dashboard/FilterPeriodRange";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
-import { COMPARE_OPTIONS } from "@/components/dashboard/filter-options";
+import { COMPARE_CRITERIA_HINT, COMPARE_OPTIONS } from "@/components/dashboard/filter-options";
 import { getSigunguOptionsForSido, KOREA_SIDO_OPTIONS } from "@/lib/korea-admin-regions";
 import { regionDetailPath } from "@/lib/region-routes";
 import type { RegionDetailFilters } from "@/lib/region-excel/client-detail";
@@ -96,6 +96,7 @@ export function RegionDetailPageFilters({
         id="detail-compare"
         label="비교 기준"
         options={COMPARE_OPTIONS}
+        hint={COMPARE_CRITERIA_HINT}
         value={filters.compare}
         onChange={(value) =>
           onFiltersChange({
