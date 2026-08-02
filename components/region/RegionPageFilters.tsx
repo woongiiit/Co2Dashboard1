@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
 import {
-  CARBON_METRIC_OPTIONS,
   COMPARE_CRITERIA_HINT,
   COMPARE_OPTIONS,
 } from "@/components/dashboard/filter-options";
@@ -101,20 +100,6 @@ export function RegionPageFilters({
         onChange={(value) =>
           onFiltersChange({
             compare: value === "prev" ? "prev" : "yoy",
-          })
-        }
-      />
-      <FilterSelect
-        id="region-metric"
-        label="탄소 지표"
-        options={CARBON_METRIC_OPTIONS}
-        value={filters.metric}
-        onChange={(value) =>
-          onFiltersChange({
-            metric:
-              value === "per-capita" || value === "per-spend"
-                ? value
-                : "total",
           })
         }
       />

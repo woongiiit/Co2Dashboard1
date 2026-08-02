@@ -18,12 +18,6 @@ export {
   compareCriteriaLabel,
 } from "@/lib/dashboard/compare-criteria";
 
-export const CARBON_METRIC_OPTIONS = [
-  { value: "total", label: "총 관광 탄소발자국" },
-  { value: "per-capita", label: "관광객 1인당" },
-  { value: "per-spend", label: "관광소비액당" },
-];
-
 export const SIDO_OPTIONS = [
   { value: "all", label: "전국" },
   { value: "gangwon", label: "강원특별자치도" },
