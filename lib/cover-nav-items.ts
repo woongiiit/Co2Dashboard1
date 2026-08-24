@@ -14,18 +14,6 @@ export const COVER_NAV_ITEMS = [
     iconSrc: "/images/cover/nav/icons/region-icon.png",
   },
   {
-    href: "/industry",
-    icon: "industry",
-    title: "업종 중심",
-    subtitleLines: [
-      "대분류·중분류 업종별",
-      "탄소발자국 구조와",
-      "비교 분석을 제공합니다.",
-    ],
-    imageSrc: "/images/cover/nav/industry.png",
-    iconSrc: "/images/cover/nav/icons/industry-icon.png",
-  },
-  {
     href: "/ai-consulting",
     icon: "ai-consulting",
     title: "AI 컨설팅",
@@ -36,6 +24,18 @@ export const COVER_NAV_ITEMS = [
     ],
     imageSrc: "/images/cover/nav/ai-consulting.png",
     iconSrc: "/images/cover/nav/icons/ai-consulting-icon.png",
+  },
+  {
+    href: "/industry",
+    icon: "industry",
+    title: "업종 중심",
+    subtitleLines: [
+      "대분류·중분류 업종별",
+      "탄소발자국 구조와",
+      "비교 분석을 제공합니다.",
+    ],
+    imageSrc: "/images/cover/nav/industry.png",
+    iconSrc: "/images/cover/nav/icons/industry-icon.png",
   },
 ] as const;
 

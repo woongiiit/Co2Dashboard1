@@ -37,20 +37,20 @@ export function DashboardLayout({
               지역 중심
             </Link>
             <Link
-              href="/industry"
-              aria-current={
-                resolvedActiveNav === "industry" ? "page" : undefined
-              }
-            >
-              업종 중심
-            </Link>
-            <Link
               href="/ai-consulting"
               aria-current={
                 resolvedActiveNav === "ai-consulting" ? "page" : undefined
               }
             >
               AI 컨설팅
+            </Link>
+            <Link
+              href="/industry"
+              aria-current={
+                resolvedActiveNav === "industry" ? "page" : undefined
+              }
+            >
+              업종 중심
             </Link>
           </nav>
         </div>
