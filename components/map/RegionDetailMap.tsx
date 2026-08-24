@@ -1,21 +1,28 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import maplibregl, { type Map as MaplibreMap } from "maplibre-gl";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import maplibregl, {
+  type MapLayerMouseEvent,
+  type Map as MaplibreMap,
+} from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
   DEFAULT_MAP_STYLE,
+  buildCarbonFillColorExpression,
   findSigunguFeatureByLabel,
   formatCo2,
   getGeometryBounds,
   loadMunicipalitiesGeoJson,
+  type SigunguGeoFeature,
 } from "@/lib/sigungu-map";
+import { regionDetailPath } from "@/lib/region-routes";
 
 const SOURCE_ID = "region-detail-sigungu";
-const BASE_FILL_ID = "region-detail-base-fill";
+const FILL_LAYER_ID = "region-detail-carbon-fill";
 const BASE_LINE_ID = "region-detail-base-line";
-const SELECT_FILL_ID = "region-detail-select-fill";
 const SELECT_LINE_ID = "region-detail-select-line";
+const HOVER_LAYER_ID = "region-detail-hover-line";
 
 type RegionDetailMapProps = {
   regionLabel: string;
@@ -28,10 +35,14 @@ export function RegionDetailMap({
 }: RegionDetailMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
   const selectedCodeRef = useRef<string>("");
+  const router = useRouter();
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedCo2, setSelectedCo2] = useState<number | null>(null);
+
+  const fillColorExpression = useMemo(() => buildCarbonFillColorExpression(), []);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -49,7 +60,31 @@ export function RegionDetailMap({
     });
 
     mapRef.current = map;
+    popupRef.current = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 12,
+      className: "carbon-map-popup",
+    });
+
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+
+    const showHover = (feature: SigunguGeoFeature, lngLat: maplibregl.LngLatLike) => {
+      map.setFilter(HOVER_LAYER_ID, ["==", ["get", "code"], feature.properties.code]);
+      map.getCanvas().style.cursor = "pointer";
+
+      const html = `
+        <strong>${feature.properties.label}</strong><br/>
+        총 관광 탄소발자국: ${formatCo2(feature.properties.co2)} tCO₂eq
+      `;
+      popupRef.current?.setLngLat(lngLat).setHTML(html).addTo(map);
+    };
+
+    const clearHover = () => {
+      map.setFilter(HOVER_LAYER_ID, ["==", ["get", "code"], ""]);
+      map.getCanvas().style.cursor = "";
+      popupRef.current?.remove();
+    };
 
     const setupLayers = async () => {
       try {
@@ -66,23 +101,12 @@ export function RegionDetailMap({
           });
 
           map.addLayer({
-            id: BASE_FILL_ID,
+            id: FILL_LAYER_ID,
             type: "fill",
             source: SOURCE_ID,
             paint: {
-              "fill-color": "#e2e8f0",
-              "fill-opacity": 0.9,
-            },
-          });
-
-          map.addLayer({
-            id: SELECT_FILL_ID,
-            type: "fill",
-            source: SOURCE_ID,
-            filter: ["==", ["get", "code"], ""],
-            paint: {
-              "fill-color": "#2563eb",
-              "fill-opacity": 0.75,
+              "fill-color": fillColorExpression as maplibregl.ExpressionSpecification,
+              "fill-opacity": 0.4,
             },
           });
 
@@ -92,7 +116,19 @@ export function RegionDetailMap({
             source: SOURCE_ID,
             paint: {
               "line-color": "#ffffff",
-              "line-width": 0.8,
+              "line-width": 0.6,
+              "line-opacity": 0.85,
+            },
+          });
+
+          map.addLayer({
+            id: HOVER_LAYER_ID,
+            type: "line",
+            source: SOURCE_ID,
+            filter: ["==", ["get", "code"], ""],
+            paint: {
+              "line-color": "#0f172a",
+              "line-width": 2,
             },
           });
 
@@ -106,18 +142,42 @@ export function RegionDetailMap({
               "line-width": 2.5,
             },
           });
+
+          map.on("mousemove", FILL_LAYER_ID, (e: MapLayerMouseEvent) => {
+            const feature = e.features?.[0] as SigunguGeoFeature | undefined;
+            if (!feature || !e.lngLat) return;
+            showHover(feature, e.lngLat);
+          });
+
+          map.on("mouseleave", FILL_LAYER_ID, clearHover);
+
+          map.on("click", FILL_LAYER_ID, (e: MapLayerMouseEvent) => {
+            const feature = e.features?.[0] as SigunguGeoFeature | undefined;
+            if (!feature) return;
+            if (feature.properties.label === regionLabel) return;
+            router.push(regionDetailPath(feature.properties.label));
+          });
         } else {
           const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource;
           source.setData(geojson);
+          if (map.getLayer(FILL_LAYER_ID)) {
+            map.setPaintProperty(
+              FILL_LAYER_ID,
+              "fill-color",
+              fillColorExpression as maplibregl.ExpressionSpecification,
+            );
+          }
         }
 
-        map.setFilter(SELECT_FILL_ID, ["==", ["get", "code"], selectedCodeRef.current]);
-        map.setFilter(SELECT_LINE_ID, ["==", ["get", "code"], selectedCodeRef.current]);
+        map.setFilter(SELECT_LINE_ID, [
+          "==",
+          ["get", "code"],
+          selectedCodeRef.current,
+        ]);
+        clearHover();
 
         if (selected) {
-          const co2 =
-            carbonByLabel?.[regionLabel] ??
-            selected.properties.co2;
+          const co2 = carbonByLabel?.[regionLabel] ?? selected.properties.co2;
           setSelectedCo2(co2 > 0 ? co2 : null);
           const bounds = getGeometryBounds(selected.geometry);
           if (bounds) {
@@ -149,10 +209,11 @@ export function RegionDetailMap({
 
     return () => {
       cancelled = true;
+      popupRef.current?.remove();
       map.remove();
       mapRef.current = null;
     };
-  }, [regionLabel, carbonByLabel]);
+  }, [regionLabel, carbonByLabel, fillColorExpression, router]);
 
   return (
     <div className="region-detail-map__maplibre">
@@ -168,7 +229,10 @@ export function RegionDetailMap({
         </div>
       ) : null}
       {status === "error" ? (
-        <div className="region-detail-map__overlay region-detail-map__overlay--error" role="alert">
+        <div
+          className="region-detail-map__overlay region-detail-map__overlay--error"
+          role="alert"
+        >
           {errorMessage ?? "지도를 표시할 수 없습니다."}
         </div>
       ) : null}
