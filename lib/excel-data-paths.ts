@@ -15,6 +15,9 @@ export const EXCEL_DATA_SHARED_DIR = path.join(EXCEL_DATA_ROOT, "shared");
 /** 서버에서 읽을 런타임 JSON (지역) */
 export const REGION_DASHBOARD_JSON = "region-dashboard.json";
 
+/** AI 컨설팅·지역 특화용 POI 런타임 JSON (`data/excel/shared/pois.json`) */
+export const POI_RUNTIME_JSON = "pois.json";
+
 /** 지역 산정 원본 엑셀 (다운로드·변환 입력) */
 export const REGION_SOURCE_EXCEL = "■중요■CARD_최종(260719).xlsx";
 

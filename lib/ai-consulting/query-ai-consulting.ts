@@ -26,6 +26,7 @@ import type {
   TravelerGuideItem,
 } from "@/lib/ai-consulting/types";
 import { buildMidIndustryTopItems } from "@/lib/ai-consulting/insight-data-profile";
+import { buildPoiInsightProfile } from "@/lib/poi/build-poi-insight-profile";
 import type { RegionDashboardQuery } from "@/lib/region-excel/types";
 import { KOREA_SIDO_OPTIONS } from "@/lib/korea-admin-regions";
 import { compareCriteriaLabel } from "@/lib/dashboard/compare-criteria";
@@ -414,11 +415,18 @@ export function queryAiConsultingDashboard(
 function buildTravelerGuideFallback(
   regionLabel: string,
   midIndustries: ReturnType<typeof buildMidIndustryTopItems>,
+  poiNames: string[] = [],
 ): TravelerGuideItem[] {
   const topMid = midIndustries[0]?.label ?? "관광";
   const secondMid = midIndustries[1]?.label;
   const transportMid =
     midIndustries.find((item) => item.majorLabel === "운송업")?.label ?? "이동";
+  const placeA = poiNames[0];
+  const placeB = poiNames[1];
+  const placePair =
+    placeA && placeB
+      ? `${placeA}·${placeB}`
+      : placeA ?? midIndustries[0]?.tourismHint.split("예:")[1]?.trim() ?? topMid;
 
   return (["transport", "lodging", "food", "waste", "activity"] as const).map(
     (id) => ({
@@ -426,16 +434,16 @@ function buildTravelerGuideFallback(
       title: TRAVELER_GUIDE_TITLES[id],
       description:
         id === "transport"
-          ? `${regionLabel}에서는 ${transportMid} 배출 비중이 높습니다. 렌터카·장거리 이동 대신 시내·근교 대중교통·도보 동선을 계획하세요.`
+          ? `${placePair} 구간은 ${transportMid} 배출 비중이 큽니다. 장거리 렌터카 대신 근거리 대중교통·도보 동선으로 묶으세요.`
           : id === "lodging"
-            ? `${regionLabel} ${topMid} 연계 숙소·근교 1박 거점을 선택하면 이동·숙박 배출을 함께 줄일 수 있습니다.`
+            ? `${placeA ?? regionLabel} 인근 ${topMid} 연계 숙소·1박 거점을 고르면 이동·숙박 배출을 함께 줄일 수 있습니다.`
             : id === "food"
               ? secondMid
-                ? `${regionLabel} ${topMid}·${secondMid} 중심 지역에서 향토 식당·시장을 선택해 식음·쇼핑 이동을 줄이세요.`
-                : `${regionLabel} ${topMid} 밀집 구역의 로컬 식당을 선택해 불필요한 이동을 줄이세요.`
+                ? `${placePair} 주변 ${topMid}·${secondMid} 밀집 구역의 향토 식당·시장을 선택해 식음 이동을 줄이세요.`
+                : `${placePair} 밀집 구역의 로컬 식당을 선택해 불필요한 이동을 줄이세요.`
               : id === "waste"
-                ? `${regionLabel} ${topMid} 체험·외식 구간에서 다회용품·분리배출을 실천해 폐기물 배출을 줄여 주세요.`
-                : `${regionLabel} ${topMid} 중심 도보·근거리 체험을 선택해 ${transportMid} 의존을 낮춰 보세요.`,
+                ? `${placeA ?? regionLabel} ${topMid} 체험·외식 구간에서 다회용품·분리배출을 실천해 폐기물을 줄여 주세요.`
+                : `${placePair}를 도보·근거리로 잇는 ${topMid} 체험을 선택해 ${transportMid} 의존을 낮춰 보세요.`,
     }),
   );
 }
@@ -444,17 +452,22 @@ function buildPackageOneLiner(
   regionLabel: string,
   topSector: SectorEmissionItem | undefined,
   midIndustries: ReturnType<typeof buildMidIndustryTopItems>,
+  poiNames: string[] = [],
 ): string {
   const mid1 = midIndustries[0];
   const mid2 = midIndustries[1];
   const sectorName = topSector?.name ?? "주요 업종";
   const sectorShare = topSector ? `${topSector.share}%` : "";
+  const places =
+    poiNames.length >= 2
+      ? `${poiNames[0]}·${poiNames[1]}${poiNames[2] ? `·${poiNames[2]}` : ""}`
+      : poiNames[0] ?? `${regionLabel} 대표 관광지`;
 
   if (mid1 && mid2) {
-    return `${regionLabel}는 ${sectorName}(${sectorShare})·${mid1.label}(${mid1.share}) 비중이 큽니다. ${regionLabel}의 대표 관광지와 ${mid1.label}·${mid2.label} 체험을 도보·대중교통 1일 동선으로 묶으면 장거리 이동·렌터카 의존을 줄여 ${sectorName} 배출을 낮출 수 있습니다.`;
+    return `${regionLabel}는 ${sectorName}(${sectorShare})·${mid1.label}(${mid1.share}) 비중이 큽니다. ${places}를 ${mid1.label}·${mid2.label} 체험과 도보·대중교통 1일 동선으로 묶으면 장거리 이동·렌터카 의존을 줄여 ${sectorName} 배출을 낮출 수 있습니다.`;
   }
 
-  return `${regionLabel} ${sectorName}(${sectorShare}) 중심 구조에서는 근거리·저이동 관광 코스 설계가 탄소 감축의 핵심입니다.`;
+  return `${regionLabel} ${sectorName}(${sectorShare}) 중심 구조에서는 ${places} 중심 근거리·저이동 관광 코스 설계가 탄소 감축의 핵심입니다.`;
 }
 
 function buildAggregateFallbackInsights(
@@ -468,7 +481,9 @@ function buildAggregateFallbackInsights(
   const trendKpi = dashboard.kpi[3];
   const totalCarbonLabel = [totalKpi.value, totalKpi.unit].filter(Boolean).join(" ");
   const scopeLabel = query.regionLabel;
-  const midIndustries = buildMidIndustryTopItems(query, 5);
+  const poiProfile = buildPoiInsightProfile(query);
+  const poiNames = poiProfile?.placeNames ?? [];
+  const midIndustries = buildMidIndustryTopItems(query, 5, poiProfile);
 
   return {
     regionalEvaluation: [
@@ -483,7 +498,7 @@ function buildAggregateFallbackInsights(
         ? `전년 동기간 대비 ${trendKpi.value}% 변화로, 구조적 저감 전략 검토가 필요합니다.`
         : "비교 기간 데이터로 추세를 확인할 수 있습니다.",
     ],
-    travelerGuide: buildTravelerGuideFallback(scopeLabel, midIndustries),
+    travelerGuide: buildTravelerGuideFallback(scopeLabel, midIndustries, poiNames),
     governmentConsulting: [
       topRegionKpi.value !== "—"
         ? `${topRegionKpi.value}·${midIndustries[0]?.label ?? topIndustry?.name ?? "상위 업종"} 연계 맞춤 감축 프로그램을 설계하세요.`
@@ -494,7 +509,7 @@ function buildAggregateFallbackInsights(
     ],
     priorityActions: {
       short: [
-        `${scopeLabel} ${midIndustries[0]?.label ?? topIndustry?.name ?? "상위"} 구간 저탄소 인증·안내`,
+        `${poiNames[0] ?? scopeLabel} ${midIndustries[0]?.label ?? topIndustry?.name ?? "상위"} 구간 저탄소 인증·안내`,
         `${midIndustries.find((m) => m.majorLabel === "운송업")?.label ?? "이동"} 연계 대중교통 쿠폰`,
         `${topRegionKpi.value !== "—" ? topRegionKpi.value : scopeLabel} 관광객 행동 변화 캠페인`,
       ],
@@ -509,7 +524,12 @@ function buildAggregateFallbackInsights(
         `${scopeLabel} 데이터 기반 탄소 공개·인증 체계`,
       ],
     },
-    oneLineRecommendation: buildPackageOneLiner(scopeLabel, topIndustry, midIndustries),
+    oneLineRecommendation: buildPackageOneLiner(
+      scopeLabel,
+      topIndustry,
+      midIndustries,
+      poiNames,
+    ),
   };
 }
 
@@ -537,7 +557,9 @@ export function buildFallbackAiConsultingInsights(
   const detailTotalKpi = findDetailKpi(detail, "총");
   const totalCarbonLabel = [totalKpi.value, totalKpi.unit].filter(Boolean).join(" ");
   const rankLabel = [rankKpi.value, rankKpi.unit].filter(Boolean).join("");
-  const midIndustries = buildMidIndustryTopItems(query, 5);
+  const poiProfile = buildPoiInsightProfile(query);
+  const poiNames = poiProfile?.placeNames ?? [];
+  const midIndustries = buildMidIndustryTopItems(query, 5, poiProfile);
 
   return {
     regionalEvaluation: [
@@ -549,18 +571,22 @@ export function buildFallbackAiConsultingInsights(
         ? `전년 동기간 대비 ${detailTotalKpi.change}로, 구조적 저감 전략 검토가 필요합니다.`
         : "비교 기간 데이터로 추세를 확인할 수 있습니다.",
     ],
-    travelerGuide: buildTravelerGuideFallback(query.regionLabel, midIndustries),
+    travelerGuide: buildTravelerGuideFallback(
+      query.regionLabel,
+      midIndustries,
+      poiNames,
+    ),
     governmentConsulting: [
       topIndustry
         ? `${query.regionLabel} ${topIndustry.name}·${midIndustries[0]?.label ?? "상위 중분류"} 구간 에너지·운영 효율 지원을 확대하세요.`
         : `${query.regionLabel} 상위 배출 업종 대상 맞춤 감축 프로그램을 설계하세요.`,
       `${query.regionLabel} ${midIndustries.find((m) => m.majorLabel === "운송업")?.label ?? "이동"} 구간 대중교통·셔틀·주차 연계를 강화하세요.`,
       `${query.regionLabel} ${midIndustries.slice(0, 2).map((m) => m.label).join("·") || topIndustry?.name || "상위"} 탄소 모니터링·공개를 정례화하세요.`,
-      `${query.regionLabel} ${midIndustries[0]?.label ?? topIndustry?.name ?? "관광"} 밀집 구역 저탄소 동선 인센티브를 연계하세요.`,
+      `${query.regionLabel} ${poiNames[0] ?? midIndustries[0]?.label ?? topIndustry?.name ?? "관광"} 밀집 구역 저탄소 동선 인센티브를 연계하세요.`,
     ],
     priorityActions: {
       short: [
-        `${query.regionLabel} ${midIndustries[0]?.label ?? topIndustry?.name ?? "상위"} 구간 저탄소 인증`,
+        `${poiNames[0] ?? query.regionLabel} ${midIndustries[0]?.label ?? topIndustry?.name ?? "상위"} 구간 저탄소 인증`,
         `${midIndustries.find((m) => m.majorLabel === "운송업")?.label ?? "이동"} 연계 대중교통 쿠폰`,
         `${query.regionLabel} ${topIndustry?.name ?? "관광"} 구역 행동 변화 캠페인`,
       ],
@@ -579,6 +605,7 @@ export function buildFallbackAiConsultingInsights(
       query.regionLabel,
       topIndustry,
       midIndustries,
+      poiNames,
     ),
   };
 }

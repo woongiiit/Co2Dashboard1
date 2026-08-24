@@ -4,11 +4,18 @@ import type {
   AiConsultingScope,
 } from "@/lib/ai-consulting/types";
 import {
+  buildAggregateInsightProfile,
   buildMidIndustryTopItems,
   buildSigunguInsightProfile,
+  type AiConsultingAggregateProfile,
   type AiConsultingMidIndustryItem,
   type AiConsultingSigunguProfile,
 } from "@/lib/ai-consulting/insight-data-profile";
+import {
+  buildPoiInsightProfile,
+  formatPoiInsightProfileForPrompt,
+} from "@/lib/poi/build-poi-insight-profile";
+import type { PoiInsightProfile } from "@/lib/poi/types";
 import type { TourismWebSearchResult } from "@/lib/web-search/types";
 import { formatTourismWebSearchForPrompt } from "@/lib/web-search/search-tourism-context";
 import { formatNumberWithUnit } from "@/lib/format/number-unit";
@@ -22,6 +29,8 @@ export type AiConsultingInsightContext = {
   sectorTop5: Array<{ name: string; share: string; value: string }>;
   midIndustryTop8: AiConsultingMidIndustryItem[];
   sigunguProfile: AiConsultingSigunguProfile | null;
+  aggregateProfile: AiConsultingAggregateProfile | null;
+  poiProfile: PoiInsightProfile | null;
   webTourism: TourismWebSearchResult | null;
   radar: {
     indicators: string[];
@@ -46,6 +55,7 @@ export function buildAiConsultingInsightContext(
   dashboard: AiConsultingDashboardData,
   webTourism: TourismWebSearchResult | null = null,
 ): AiConsultingInsightContext {
+  const poiProfile = buildPoiInsightProfile(query);
   return {
     scope: query.scope,
     regionLabel: dashboard.regionLabel,
@@ -57,8 +67,10 @@ export function buildAiConsultingInsightContext(
       share: `${item.share}%`,
       value: item.value.toLocaleString("ko-KR"),
     })),
-    midIndustryTop8: buildMidIndustryTopItems(query, 8),
+    midIndustryTop8: buildMidIndustryTopItems(query, 8, poiProfile),
     sigunguProfile: buildSigunguInsightProfile(query),
+    aggregateProfile: buildAggregateInsightProfile(query),
+    poiProfile,
     webTourism,
     radar: dashboard.radar,
     compareReliability: dashboard.compareReliability,
@@ -69,9 +81,9 @@ const REGIONAL_WRITING_RULES = `
 ## 지역 특화 작성 원칙 (필수)
 - "대중교통 이용", "친환경 숙소 선택", "일회용품 줄이기" 등 **전국 어디에나 해당하는 문장만 나열하지 마세요**.
 - 문장을 **"{지역명}에서는…" / "{지역명} [카테고리]…"로 반복 시작하지 마세요**. 주어를 바꾸거나 명소·업종으로 시작하세요.
-- **지역명·시도명·상위 중분류 업종·배출 구조·웹 검색 지명**을 근거로, 이 지역만 해당하는 장소·코스·체험·정책을 구체적으로 쓰세요.
+- **지역명·시도명·상위 중분류 업종·배출 구조·POI·웹 검색 지명**을 근거로, 이 지역만 해당하는 장소·코스·체험·정책을 구체적으로 쓰세요.
 - 엑셀에 없는 **배출량·비율·순위 수치는 절대 만들지 마세요**.
-- **관광명소·지명**은 제공된 **웹 검색 스니펫/지명 후보**에 나온 것을 우선 사용하세요. 목록이 있으면 목록 밖 지명을 새로 만들지 마세요.
+- **관광명소·지명**은 제공된 **지역 POI·웹 검색 스니펫/지명 후보**에 나온 것을 우선 사용하세요. 목록이 있으면 목록 밖 지명을 새로 만들지 마세요.
 - 각 섹션마다 최소 1개는 **지명·업종·동선·패키지** 등 고유 표현을 포함하세요.`;
 
 const JSON_OUTPUT_RULES = `
@@ -103,7 +115,7 @@ travelerGuide는 id를 반드시 transport, lodging, food, waste, activity 다�
 export const AI_CONSULTING_INSIGHT_SYSTEM_PROMPT = `당신은 관광 DMO·지자체·관광사업자를 위한 **관광 탄소경영 AI 컨설턴트**입니다.
 
 ## 역할
-- 제공된 **엑셀 기반 KPI·대분류/중분류 업종·비교·추세**와 **지역명**을 근거로, 해당 시군구에만 맞는 실행 제언을 작성합니다.
+- 제공된 **엑셀 기반 KPI·대분류/중분류 업종·비교·추세**와 **지역 POI·지역명**을 근거로, 해당 시군구에만 맞는 실행 제언을 작성합니다.
 - 배출 수치는 제공 데이터만 사용하고, **관광명소·코스·패키지**는 지역 특성에 맞게 구체적으로 제안합니다.
 ${REGIONAL_WRITING_RULES}
 ${JSON_OUTPUT_RULES}`;
@@ -111,8 +123,8 @@ ${JSON_OUTPUT_RULES}`;
 export const AI_CONSULTING_AGGREGATE_INSIGHT_SYSTEM_PROMPT = `당신은 관광 DMO·중앙·지자체 정책 담당자를 위한 **관광 탄소경영 AI 컨설턴트**입니다.
 
 ## 역할
-- 제공된 **전국 또는 시도 집계** 엑셀 데이터(업종·순위·추세)를 근거로, 해당 범위의 **지역 간 격차·상위 배출 지역·산업 구조**를 반영한 제언을 작성합니다.
-- 전국 공통 문구 반복을 피하고, **상위 시군구·상위 중분류 업종**을 이름과 함께 언급하세요.
+- 제공된 **전국 또는 시도 집계** 엑셀 데이터(업종·순위·추세)와 **대표 POI**를 근거로, 해당 범위의 **지역 간 격차·상위 배출 지역·산업 구조**를 반영한 제언을 작성합니다.
+- 전국 공통 문구 반복을 피하고, **상위 시군구·상위 중분류 업종·대표 POI**를 이름과 함께 언급하세요.
 ${REGIONAL_WRITING_RULES}
 ${JSON_OUTPUT_RULES}`;
 
@@ -153,6 +165,32 @@ ${
 }`;
 }
 
+function buildAggregateProfileBlock(context: AiConsultingInsightContext): string {
+  const profile = context.aggregateProfile;
+  if (!profile) return "";
+
+  const rankingLines =
+    profile.topSigungu.length > 0
+      ? profile.topSigungu
+          .map(
+            (item) =>
+              `- ${item.rank}위 ${item.name}: ${item.value} tCO₂eq (${item.share}, ${item.change})`,
+          )
+          .join("\n")
+      : "- 순위 데이터 없음";
+
+  return `
+## 집계 범위 시군구 순위·격차 (엑셀)
+- 상위 3개 시군구 배출 집중도: ${profile.top3Share}
+${rankingLines}
+## 월별 배출 peak (집계 범위)
+${
+  profile.monthlyPeaks.length > 0
+    ? profile.monthlyPeaks.map((line) => `- ${line}`).join("\n")
+    : "- peak 정보 없음"
+}`;
+}
+
 function buildInsightDataBlock(context: AiConsultingInsightContext): string {
   const radarLabel =
     context.scope === "sigungu"
@@ -167,6 +205,9 @@ ${context.sectorTop5.map((item) => `- ${item.name}: ${item.value} tCO₂eq (${it
 
 ${buildMidIndustryBlock(context)}
 ${buildSigunguProfileBlock(context)}
+${buildAggregateProfileBlock(context)}
+
+${formatPoiInsightProfileForPrompt(context.poiProfile)}
 
 ## ${radarLabel}
 ${context.radar.indicators
@@ -184,19 +225,19 @@ function buildSectionGuideSigungu(regionLabel: string): string {
   return `
 ## 섹션별 작성 지침
 1. **regionalEvaluation** (3~4문장): ${regionLabel}의 순위·상위 **대분류·중분류**·추세·peak 시즌을 **수치와 업종명**으로 진단. 다른 지역과 바꿔도 되는 일반론 금지.
-2. **travelerGuide**: id별 1~2문장. **웹 검색 지명 + 상위 중분류 업종**을 연결한 구체 동선/체류. 각 description에 **검색 지명 또는 업종명** 1개 이상. "{지역명}에서는"으로 시작 금지.
+2. **travelerGuide**: id별 1~2문장. **POI·웹 검색 지명 + 상위 중분류 업종**을 연결한 구체 동선/체류. 각 description에 **POI명 또는 검색 지명 또는 업종명** 1개 이상. "{지역명}에서는"으로 시작 금지.
 3. **governmentConsulting** (4~6개): 상위 업종·peak·비교 격차를 반영한 **지자체 실행안**(인프라·인센티브·모니터링). "대중교통 확대"만 단독 사용 금지 — **어디·어떤 업종·어떤 시즌**인지 명시.
-4. **priorityActions**: 단기/중기/장기 각 2~3개. **중분류 업종명·검색 지명 또는 거점**을 과제에 포함.
-5. **oneLineRecommendation** (2~3문장, 150~220자): **저탄소 관광 패키지** 1개 — **웹 검색 명소 2~3개**를 하나의 동선으로 묶고, 상위 배출 업종 관점에서 **왜 탄소가 적은지** 엑셀 수치로 설명.`;
+4. **priorityActions**: 단기/중기/장기 각 2~3개. **중분류 업종명·POI명 또는 거점**을 과제에 포함.
+5. **oneLineRecommendation** (2~3문장, 150~220자): **저탄소 관광 패키지** 1개 — **POI/웹 검색 명소 2~3개**를 하나의 동선으로 묶고, 상위 배출 업종 관점에서 **왜 탄소가 적은지** 엑셀 수치로 설명.`;
 }
 
 const SECTION_GUIDE_AGGREGATE = `
 ## 섹션별 작성 지침
-1. **regionalEvaluation** (3~4문장): 범위 내 **1위 시군구·상위 중분류·격차·추세**를 수치·지명과 함께 진단.
-2. **travelerGuide**: id별 1~2문장. 범위의 **대표 업종 구조**에 맞는 구체 행동(상위 중분류명 포함).
+1. **regionalEvaluation** (3~4문장): 범위 내 **상위 시군구(순위·비중)·상위 중분류·격차·추세**를 수치·지명과 함께 진단.
+2. **travelerGuide**: id별 1~2문장. 범위의 **대표 업종 구조·대표 POI**에 맞는 구체 행동(상위 중분류명·POI명 포함).
 3. **governmentConsulting** (4~6개): 상위 지역·업종·집중도 기반 **정책·인프라** (범용 문구 금지).
-4. **priorityActions**: 단기/중기/장기 — **상위 시군구·업종명** 반영.
-5. **oneLineRecommendation** (2~3문장): 범위 대표 **저탄소 관광 모델** 1개 — 상위 배출 지역·업종과 연결된 **구체 패키지/동선** 제안.`;
+4. **priorityActions**: 단기/중기/장기 — **상위 시군구·업종명·POI** 반영.
+5. **oneLineRecommendation** (2~3문장): 범위 대표 **저탄소 관광 모델** 1개 — 상위 배출 지역·업종·POI와 연결된 **구체 패키지/동선** 제안.`;
 
 export function buildAiConsultingInsightUserPrompt(
   context: AiConsultingInsightContext,
@@ -205,14 +246,14 @@ export function buildAiConsultingInsightUserPrompt(
     ? ` (${context.sigunguProfile.sidoNm})`
     : "";
 
-  return `아래는 /ai-consulting **시군구** 분석용 **엑셀 데이터 + 웹 검색 관광 맥락**입니다. 위 JSON 형식으로 5개 섹션을 작성하세요.
+  return `아래는 /ai-consulting **시군구** 분석용 **엑셀 데이터 + 지역 POI + 웹 검색 관광 맥락**입니다. 위 JSON 형식으로 5개 섹션을 작성하세요.
 
 ## 분석 조건
 - 지역: ${context.regionLabel}${sidoHint}
 - 기간: ${context.periodLabel}
 - 비교: ${context.compareMode}
 
-${formatTourismWebSearchForPrompt(context.webTourism)}
+${formatTourismWebSearchForPrompt(context.webTourism, context.poiProfile?.placeNames)}
 
 ${buildInsightDataBlock(context)}
 ${buildSectionGuideSigungu(context.regionLabel)}`;
@@ -226,14 +267,14 @@ export function buildAiConsultingAggregateInsightUserPrompt(
       ? "전국 집계 — 상위 시군구·지역 간 격차·산업 구조"
       : `${context.regionLabel} 시도 집계 — 시군구 간 격차·1위 시군구·산업 구조`;
 
-  return `아래는 /ai-consulting **${context.scope === "national" ? "전국" : "시도"}** 집계용 **엑셀 데이터**입니다. 위 JSON 형식으로 5개 섹션을 작성하세요.
+  return `아래는 /ai-consulting **${context.scope === "national" ? "전국" : "시도"}** 집계용 **엑셀 데이터 + 지역 POI**입니다. 위 JSON 형식으로 5개 섹션을 작성하세요.
 
 ## 분석 조건
 - 범위: ${context.regionLabel} (${scopeGuide})
 - 기간: ${context.periodLabel}
 - 비교: ${context.compareMode}
 
-${context.scope === "sido" ? `${formatTourismWebSearchForPrompt(context.webTourism)}\n` : ""}
+${context.scope === "sido" ? `${formatTourismWebSearchForPrompt(context.webTourism, context.poiProfile?.placeNames)}\n` : ""}
 ${buildInsightDataBlock(context)}
 ${SECTION_GUIDE_AGGREGATE}`;
 }

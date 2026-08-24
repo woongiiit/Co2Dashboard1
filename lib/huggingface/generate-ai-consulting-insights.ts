@@ -69,7 +69,13 @@ async function enrichContextWithWebSearch(
 
   try {
     const startedAt = Date.now();
-    const webTourism = await searchTourismWebContext(context.regionLabel);
+    const webTourism = await searchTourismWebContext(context.regionLabel, {
+      midIndustryLabels: context.midIndustryTop8.slice(0, 3).map((item) => item.label),
+      peakMonthLabels:
+        context.sigunguProfile?.monthlyPeaks ??
+        context.aggregateProfile?.monthlyPeaks ??
+        [],
+    });
     logAiConsultingWebSearch("completed", {
       regionLabel: context.regionLabel,
       scope: context.scope,
@@ -82,6 +88,7 @@ async function enrichContextWithWebSearch(
       sources: [...new Set(webTourism.snippets.map((item) => item.source))],
       warning: webTourism.warning ?? null,
       passedToPrompt: webTourism.snippets.length > 0,
+      poiPlaceCount: context.poiProfile?.placeNames.length ?? 0,
     });
     return { ...context, webTourism };
   } catch (error) {

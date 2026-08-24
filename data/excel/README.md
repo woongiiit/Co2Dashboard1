@@ -9,7 +9,7 @@
 data/excel/
 ├── region/     # 지역 중심 분석 (/region)
 ├── industry/   # 업종 중심 분석 (/industry)
-└── shared/     # 공통 코드표·매핑·기준정보
+└── shared/     # 공통 코드표·매핑·POI (`pois.json`)
 ```
 
 ## 사용 방법
@@ -22,7 +22,8 @@ data/excel/
    python data/processor/validate_region_json.py
    ```
 3. 앱은 `region/region-dashboard.json` (formatVersion 2, tCO₂eq)만 읽습니다.
-4. 이전 원본은 `region/archive/`에 보관합니다.
+4. AI 컨설팅 지역 특화용 POI는 `shared/pois.json`을 읽습니다.
+5. 이전 원본은 `region/archive/`에 보관합니다.
 
 ### 폴더 구조 (region)
 

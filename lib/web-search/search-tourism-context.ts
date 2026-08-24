@@ -4,6 +4,11 @@ const SEARCH_TIMEOUT_MS = 8_000;
 const MAX_SNIPPETS = 8;
 const MAX_PLACE_NAMES = 12;
 
+export type TourismWebSearchOptions = {
+  midIndustryLabels?: string[];
+  peakMonthLabels?: string[];
+};
+
 const PLACE_NOISE = new Set([
   "총생산",
   "1차산",
@@ -71,20 +76,37 @@ function extractPlaceLikeTokens(text: string, regionLabel: string): string[] {
   return [...names];
 }
 
+function buildSearchQueries(
+  regionLabel: string,
+  options?: TourismWebSearchOptions,
+): string[] {
+  const keywords = regionKeywords(regionLabel);
+  const shortName = keywords[keywords.length - 1] ?? regionLabel;
+  const mid = options?.midIndustryLabels?.find((item) => item.trim().length > 0);
+  const peakRaw = options?.peakMonthLabels?.[0] ?? "";
+  const peakMonth = peakRaw.match(/(\d{1,2}월)/u)?.[1];
+
+  const queries = [
+    `${shortName} 관광명소 대표 관광지`,
+    `${shortName} 1박2일 관광 코스`,
+    mid ? `${shortName} ${mid} 관광` : `${shortName} 가볼만한곳`,
+    peakMonth
+      ? `${shortName} ${peakMonth} 축제 성수기`
+      : `${regionLabel} 지역 축제 관광`,
+  ];
+
+  return [...new Set(queries.filter((q) => q.trim().length > 0))];
+}
+
 async function searchWikipedia(
   regionLabel: string,
+  queries: string[],
 ): Promise<TourismWebSnippet[]> {
   const keywords = regionKeywords(regionLabel);
   const shortName = keywords[keywords.length - 1] ?? regionLabel;
-  const queries = [
-    `${shortName} 관광명소`,
-    `${shortName} 관광지`,
-    `${regionLabel} 관광`,
-    `${shortName} 가볼만한곳`,
-  ];
   const snippets: TourismWebSnippet[] = [];
 
-  for (const query of queries) {
+  for (const query of queries.slice(0, 4)) {
     try {
       const searchUrl = new URL("https://ko.wikipedia.org/w/api.php");
       searchUrl.searchParams.set("action", "query");
@@ -115,7 +137,6 @@ async function searchWikipedia(
           keywords.find((item) => /(시|군|구)$/u.test(item) && !item.includes(" ")) ??
           shortName;
 
-        // 다른 시·군·구 문서 제외 (포천시 ≠ 양주시)
         if (
           /(특별자치시|광역시|특별시|시|군|구)$/u.test(title) &&
           title !== municipalName &&
@@ -127,7 +148,6 @@ async function searchWikipedia(
         if (!mentionsRegion(`${title} ${snippet}`, [municipalName, shortName])) {
           continue;
         }
-        // 행정·선거·학교 문서 제외
         if (/(선거구|고등학교|중학교|초등학교)$/u.test(title)) continue;
         snippets.push({
           title,
@@ -141,7 +161,6 @@ async function searchWikipedia(
     }
   }
 
-  // 시군구 본문 요약 (시·군·구 단위 표제어 우선)
   try {
     const pageTitle =
       keywords.find((item) => /(시|군|구)$/u.test(item) && !item.includes(" ")) ??
@@ -173,46 +192,64 @@ async function searchWikipedia(
   return snippets;
 }
 
-async function searchTavily(regionLabel: string): Promise<TourismWebSnippet[]> {
+async function searchTavily(
+  regionLabel: string,
+  queries: string[],
+): Promise<TourismWebSnippet[]> {
   const apiKey = process.env.TAVILY_API_KEY?.trim();
   if (!apiKey) return [];
 
-  try {
-    const response = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: withTimeout(SEARCH_TIMEOUT_MS),
-      body: JSON.stringify({
-        api_key: apiKey,
-        query: `${regionLabel} 관광명소 대표 관광지 코스`,
-        search_depth: "basic",
-        include_answer: false,
-        max_results: 5,
-        country: "south korea",
-      }),
-    });
-    if (!response.ok) return [];
+  const tavilyQueries = queries.slice(0, 2);
+  const collected: TourismWebSnippet[] = [];
 
-    const payload = (await response.json()) as {
-      results?: Array<{ title?: string; content?: string; url?: string }>;
-    };
+  for (const query of tavilyQueries) {
+    try {
+      const response = await fetch("https://api.tavily.com/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: withTimeout(SEARCH_TIMEOUT_MS),
+        body: JSON.stringify({
+          api_key: apiKey,
+          query,
+          search_depth: "basic",
+          include_answer: false,
+          max_results: 4,
+          country: "south korea",
+        }),
+      });
+      if (!response.ok) continue;
 
-    return (payload.results ?? [])
-      .map((item) => ({
-        title: cleanText(item.title ?? ""),
-        snippet: cleanText(item.content ?? "").slice(0, 280),
-        url: item.url,
-        source: "tavily" as const,
-      }))
-      .filter((item) => item.title && item.snippet);
-  } catch {
-    return [];
+      const payload = (await response.json()) as {
+        results?: Array<{ title?: string; content?: string; url?: string }>;
+      };
+
+      for (const item of payload.results ?? []) {
+        const title = cleanText(item.title ?? "");
+        const snippet = cleanText(item.content ?? "").slice(0, 280);
+        if (!title || !snippet) continue;
+        collected.push({
+          title,
+          snippet,
+          url: item.url,
+          source: "tavily",
+        });
+      }
+    } catch {
+      // continue other queries
+    }
   }
+
+  return collected;
 }
 
-async function searchSerper(regionLabel: string): Promise<TourismWebSnippet[]> {
+async function searchSerper(
+  regionLabel: string,
+  queries: string[],
+): Promise<TourismWebSnippet[]> {
   const apiKey = process.env.SERPER_API_KEY?.trim();
   if (!apiKey) return [];
+
+  const query = queries[0] ?? `${regionLabel} 관광명소 대표 관광지`;
 
   try {
     const response = await fetch("https://google.serper.dev/search", {
@@ -223,7 +260,7 @@ async function searchSerper(regionLabel: string): Promise<TourismWebSnippet[]> {
       },
       signal: withTimeout(SEARCH_TIMEOUT_MS),
       body: JSON.stringify({
-        q: `${regionLabel} 관광명소 대표 관광지`,
+        q: query,
         gl: "kr",
         hl: "ko",
         num: 5,
@@ -268,22 +305,19 @@ function dedupeSnippets(items: TourismWebSnippet[]): TourismWebSnippet[] {
  */
 export async function searchTourismWebContext(
   regionLabel: string,
+  options?: TourismWebSearchOptions,
 ): Promise<TourismWebSearchResult> {
   const label = regionLabel.trim();
-  const queries = [
-    `${label} 관광명소`,
-    `${label} 대표 관광지 코스`,
-    `${label} 관광`,
-  ];
+  const queries = buildSearchQueries(label, options);
 
   if (!label) {
     return { regionLabel: label, queries, snippets: [], placeNames: [] };
   }
 
   const settled = await Promise.allSettled([
-    searchWikipedia(label),
-    searchTavily(label),
-    searchSerper(label),
+    searchWikipedia(label, queries),
+    searchTavily(label, queries),
+    searchSerper(label, queries),
   ]);
 
   const collected: TourismWebSnippet[] = [];
@@ -317,7 +351,7 @@ export async function searchTourismWebContext(
     placeNames,
     warning:
       snippets.length === 0
-        ? "웹 검색 결과가 없어 엑셀 데이터만으로 생성합니다."
+        ? "웹 검색 결과가 없어 엑셀·POI 데이터만으로 생성합니다."
         : !hasPaidKey && snippets.every((s) => s.source === "wikipedia")
           ? "위키백과 기반 검색만 사용 중입니다. TAVILY_API_KEY 또는 SERPER_API_KEY를 설정하면 웹 검색이 보강됩니다."
           : warnings[0],
@@ -326,10 +360,15 @@ export async function searchTourismWebContext(
 
 export function formatTourismWebSearchForPrompt(
   result: TourismWebSearchResult | null | undefined,
+  extraPlaceNames: string[] = [],
 ): string {
   if (!result || result.snippets.length === 0) {
+    const poiPlaces =
+      extraPlaceNames.length > 0
+        ? `\n### 내부 POI 지명 (웹 검색 없을 때 우선 사용)\n${extraPlaceNames.map((name) => `- ${name}`).join("\n")}`
+        : "";
     return `## 웹 검색 관광 맥락
-- 검색 결과 없음. 지명은 모델 일반 지식에만 의존하지 말고, 엑셀 업종·동선 힌트 중심으로 작성하세요.`;
+- 검색 결과 없음. 지명은 내부 POI·엑셀 업종 동선 힌트 중심으로 작성하세요.${poiPlaces}`;
   }
 
   const snippetLines = result.snippets
@@ -339,9 +378,13 @@ export function formatTourismWebSearchForPrompt(
     )
     .join("\n");
 
+  const mergedPlaces = [
+    ...new Set([...extraPlaceNames, ...result.placeNames]),
+  ].slice(0, MAX_PLACE_NAMES + 8);
+
   const places =
-    result.placeNames.length > 0
-      ? result.placeNames.map((name) => `- ${name}`).join("\n")
+    mergedPlaces.length > 0
+      ? mergedPlaces.map((name) => `- ${name}`).join("\n")
       : "- (고유명사 후보 추출 없음 — 스니펫 제목·본문의 실제 지명만 사용)";
 
   return `## 웹 검색 관광 맥락 (참고용 — 배출 수치 아님)
@@ -351,7 +394,7 @@ ${result.warning ? `참고: ${result.warning}` : ""}
 ### 검색 스니펫
 ${snippetLines}
 
-### 사용 가능 지명 후보 (가능하면 이 목록·스니펫에 나온 이름만 사용)
+### 사용 가능 지명 후보 (POI + 웹 — 가능하면 이 목록·스니펫에 나온 이름만 사용)
 ${places}
 
 규칙:

@@ -2,14 +2,20 @@ import { MONTH_LABELS } from "@/lib/charts/monthly-carbon-trend-data";
 import { getMidIndustryDefinitions } from "@/lib/industry-excel/excel-columns";
 import { sumIndustryColumns } from "@/lib/industry-excel/shared";
 import type { AiConsultingQuery } from "@/lib/ai-consulting/types";
+import { relatedPoiNamesForMidIndustry } from "@/lib/poi/build-poi-insight-profile";
+import type { PoiInsightProfile } from "@/lib/poi/types";
 import { rowMatchesRegionLabel } from "@/lib/region-excel/admin-boundary-registry";
-import { isYmInRange } from "@/lib/region-excel/format";
+import { isYmInRange, rawCarbonToTco2eq } from "@/lib/region-excel/format";
 import { loadRegionExcelRows } from "@/lib/region-excel/load-region-data";
 import {
   parseRegionDetailQuery,
   queryRegionDetail,
 } from "@/lib/region-excel/query-region-detail";
-import { filterRowsPointInTime } from "@/lib/region-excel/resolve-admin-boundary";
+import { queryRegionDashboard } from "@/lib/region-excel/query-region-dashboard";
+import {
+  buildCompareAggregationKey,
+  filterRowsPointInTime,
+} from "@/lib/region-excel/resolve-admin-boundary";
 
 export type AiConsultingMidIndustryItem = {
   label: string;
@@ -22,6 +28,18 @@ export type AiConsultingMidIndustryItem = {
 export type AiConsultingSigunguProfile = {
   sidoNm: string;
   comparison: Array<{ label: string; value: string; change: string }>;
+  monthlyPeaks: string[];
+};
+
+export type AiConsultingAggregateProfile = {
+  topSigungu: Array<{
+    rank: number;
+    name: string;
+    value: string;
+    change: string;
+    share: string;
+  }>;
+  top3Share: string;
   monthlyPeaks: string[];
 };
 
@@ -66,9 +84,20 @@ function filterRowsForQuery(query: AiConsultingQuery) {
   });
 }
 
+function localizeTourismHint(
+  midLabel: string,
+  poiProfile: PoiInsightProfile | null,
+): string {
+  const base = MID_INDUSTRY_TOURISM_HINTS[midLabel] ?? "지역 특화 관광 활동";
+  const related = relatedPoiNamesForMidIndustry(midLabel, poiProfile, 2);
+  if (related.length === 0) return base;
+  return `${base} — 예: ${related.join("·")}`;
+}
+
 export function buildMidIndustryTopItems(
   query: AiConsultingQuery,
   limit = 8,
+  poiProfile: PoiInsightProfile | null = null,
 ): AiConsultingMidIndustryItem[] {
   const rows = filterRowsPointInTime(filterRowsForQuery(query));
   const mids = getMidIndustryDefinitions();
@@ -90,7 +119,7 @@ export function buildMidIndustryTopItems(
     majorLabel: item.majorLabel,
     value: item.value.toLocaleString("ko-KR"),
     share: `${((item.value / total) * 100).toFixed(1)}%`,
-    tourismHint: MID_INDUSTRY_TOURISM_HINTS[item.label] ?? "지역 특화 관광 활동",
+    tourismHint: localizeTourismHint(item.label, poiProfile),
   }));
 }
 
@@ -132,5 +161,89 @@ export function buildSigunguInsightProfile(
       change: `${item.changeDirection === "up" ? "▲" : "▼"} ${item.changePercent}%`,
     })),
     monthlyPeaks: monthlyPeaks.slice(0, 3),
+  };
+}
+
+function extractPeakMonthsFromTrend(
+  trend: Record<string, (number | null)[]>,
+): string[] {
+  const peaks: Array<{ label: string; value: number }> = [];
+
+  for (const [year, months] of Object.entries(trend)) {
+    months.forEach((value, index) => {
+      if (value == null || value <= 0) return;
+      const isPeak = months.every(
+        (other, otherIndex) =>
+          otherIndex === index || other == null || value >= other,
+      );
+      if (isPeak) {
+        peaks.push({
+          label: `${year}년 ${MONTH_LABELS[index]}`,
+          value,
+        });
+      }
+    });
+  }
+
+  return peaks
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3)
+    .map(
+      (item) =>
+        `${item.label} 약 ${item.value.toLocaleString("ko-KR")} tCO₂eq`,
+    );
+}
+
+/**
+ * 시도·전국 스코프용: 상위 시군구 ranking + 집중도 + 월별 peak
+ */
+export function buildAggregateInsightProfile(
+  query: AiConsultingQuery,
+): AiConsultingAggregateProfile | null {
+  if (query.scope === "sigungu") return null;
+
+  const regionData = queryRegionDashboard({
+    sidoCode: query.scope === "sido" ? query.sidoCode : "all",
+    periodStart: query.periodStart,
+    periodEnd: query.periodEnd,
+    compare: query.compare,
+    metric: "total",
+  });
+
+  const rows = filterRowsPointInTime(filterRowsForQuery(query));
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    const key = buildCompareAggregationKey(row, query.periodEnd);
+    totals.set(
+      key,
+      (totals.get(key) ?? 0) + rawCarbonToTco2eq(row.carbonRaw),
+    );
+  }
+
+  const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+  const grandTotal = sorted.reduce((sum, [, value]) => sum + value, 0);
+  const top3Sum = sorted.slice(0, 3).reduce((sum, [, value]) => sum + value, 0);
+  const top3Share =
+    grandTotal > 0 ? `${((top3Sum / grandTotal) * 100).toFixed(1)}%` : "—";
+
+  const shareByName = new Map(
+    sorted.map(([name, value]) => [
+      name,
+      grandTotal > 0 ? `${((value / grandTotal) * 100).toFixed(1)}%` : "—",
+    ]),
+  );
+
+  const topSigungu = regionData.ranking.slice(0, 5).map((item) => ({
+    rank: item.rank,
+    name: item.name,
+    value: item.value,
+    change: item.change ?? "—",
+    share: shareByName.get(item.name) ?? "—",
+  }));
+
+  return {
+    topSigungu,
+    top3Share,
+    monthlyPeaks: extractPeakMonthsFromTrend(regionData.trend),
   };
 }
