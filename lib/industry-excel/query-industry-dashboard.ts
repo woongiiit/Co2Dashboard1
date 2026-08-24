@@ -182,6 +182,7 @@ function buildKpi(
       changeDirection: selectedChange.direction,
       icon: "industry-carbon",
       iconSrc: getIndustryKpiIconSrc("industry-carbon"),
+      carbonTco2eq: selectedCarbon,
     },
     {
       label: "평균 탄소발자국 지수",
@@ -207,6 +208,7 @@ function buildKpi(
       unit: totalCarbonDisplay.unit,
       icon: "tourism-spend",
       iconSrc: getIndustryKpiIconSrc("tourism-spend"),
+      carbonTco2eq: totalCarbon,
     },
     {
       label: "전년 대비 증감률",
@@ -255,22 +257,4 @@ export function queryIndustryDashboard(
   };
 }
 
-export function buildFallbackIndustryInsights(
-  query: IndustryDashboardQuery,
-  data: IndustryDashboardData,
-): string[] {
-  const scope = formatIndustryScopeLabel(query);
-  const topMajor = data.majorIndustries[0];
-  const topMid = data.midRanking[0];
-  const totalKpi = data.kpi[0];
 
-  return [
-    topMajor
-      ? `${scope}에서 ${topMajor.name}이(가) 대분류 탄소의 ${formatDecimal(topMajor.share, 1)}%를 차지합니다.`
-      : `${scope} 업종별 데이터가 충분하지 않습니다.`,
-    topMid
-      ? `중분류 1위는 ${topMid.name}(${topMid.value} tCO₂eq, 비중 ${topMid.change})입니다.`
-      : "중분류 순위 데이터가 없습니다.",
-    `${totalKpi.label}은 ${data.periodLabel} 기준 ${totalKpi.value} tCO₂eq${totalKpi.change ? ` (${totalKpi.change})` : ""}입니다.`,
-  ].filter((line) => line.length >= 12);
-}

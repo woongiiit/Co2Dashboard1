@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { buildIndustryInsightContext } from "@/lib/industry-excel/build-industry-insight-context";
 import {
-  buildFallbackIndustryInsights,
-  queryIndustryDashboard,
-} from "@/lib/industry-excel/query-industry-dashboard";
+  buildIndustryInsightContext,
+  buildFallbackIndustryInsightItems,
+} from "@/lib/industry-excel/build-industry-insight-context";
+import { queryIndustryDashboard } from "@/lib/industry-excel/query-industry-dashboard";
 import { parseIndustryDashboardQuery } from "@/lib/industry-excel/shared";
 import { generateIndustryInsightsWithHf } from "@/lib/huggingface/generate-industry-insights";
 import type { IndustryInsightsResponse } from "@/lib/industry-excel/types";
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const query = parseIndustryDashboardQuery(searchParams);
     const dashboard = queryIndustryDashboard(query);
     const context = buildIndustryInsightContext(query, dashboard);
-    const fallbackItems = buildFallbackIndustryInsights(query, dashboard);
+    const fallbackItems = buildFallbackIndustryInsightItems(context);
     const generated = await generateIndustryInsightsWithHf(context, fallbackItems);
 
     const body: IndustryInsightsResponse = {

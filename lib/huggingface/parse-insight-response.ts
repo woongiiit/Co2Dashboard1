@@ -10,7 +10,10 @@ export function parseInsightResponse(raw: string): string[] {
 
   return trimmed
     .split(/\n+/)
-    .map((line) => line.replace(/^[\s\-*•\d.)、]+/, "").trim())
+    .map((line) =>
+      // 줄 앞 불릿/순번 기호만 제거: "1.", "•", "-", "*" 등. 연도 숫자는 보존.
+      line.replace(/^[\s]*(\d+[.)]\s+|[-*•]\s*)/, "").trim(),
+    )
     .filter((line) => line.length >= 12)
     .slice(0, 5);
 }
