@@ -118,7 +118,7 @@ export function RegionDetailContent({ regionLabel }: RegionDetailContentProps) {
       ? `기준 기간: ${data.periodLabel}`
       : undefined;
 
-  const nationalRankKpi = data?.kpi[1];
+
   const trendDescription = data
     ? `선택 지역 · ${filters.compare === "prev" ? "직전 기간" : "전년(동월)"} · 전국 평균 · ${data.sidoNm} 평균`
     : "선택 지역 · 전년(동월) · 전국 평균 · 시도 평균";
@@ -156,10 +156,6 @@ export function RegionDetailContent({ regionLabel }: RegionDetailContentProps) {
           ) : (
             <RegionDetailMapPanelLazy
               regionLabel={regionLabel}
-              periodLabel={data?.periodLabel ?? ""}
-              mapValue={data?.mapValue ?? 0}
-              nationalRank={nationalRankKpi?.value}
-              nationalRankHint={nationalRankKpi?.hint}
               carbonByLabel={data?.mapByLabel}
             />
           )}
