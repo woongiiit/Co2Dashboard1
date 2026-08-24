@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { buildRegionDetailInsightContext } from "@/lib/region-excel/build-region-detail-insight-context";
 import { generateRegionDetailInsightsWithHf } from "@/lib/huggingface/generate-region-detail-insights";
 import {
-  buildFallbackRegionDetailInsights,
+  buildFallbackRegionDetailInsightSections,
+  buildRegionDetailInsightContext,
+} from "@/lib/region-excel/build-region-detail-insight-context";
+import {
   parseRegionDetailQuery,
   queryRegionDetail,
 } from "@/lib/region-excel/query-region-detail";
@@ -24,7 +26,7 @@ export async function GET(request: Request) {
     const query = parseRegionDetailQuery(searchParams, regionLabel);
     const detail = queryRegionDetail(query);
     const context = buildRegionDetailInsightContext(query, detail);
-    const fallbackSections = buildFallbackRegionDetailInsights(detail, query);
+    const fallbackSections = buildFallbackRegionDetailInsightSections(context);
     const generated = await generateRegionDetailInsightsWithHf(
       context,
       fallbackSections,

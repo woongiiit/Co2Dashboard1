@@ -492,30 +492,3 @@ export function queryRegionDetail(query: RegionDetailQuery): RegionDetailData {
   };
 }
 
-export function buildFallbackRegionDetailInsights(
-  data: RegionDetailData,
-  query: RegionDetailQuery,
-): RegionDetailInsightsSections {
-  const totalKpi = data.kpi[0];
-  const topIndustry = data.industryComposition[0];
-  const compareLabel = query.compare === "prev" ? "직전 기간" : "전년 동기간";
-
-  return {
-    evaluation: [
-      `${data.regionLabel}의 총 관광 탄소발자국은 ${compareLabel} ${totalKpi.change ?? "—"}입니다.`,
-      `전국 ${data.kpi[1]?.value ?? "—"}위, ${data.sidoNm} 내 ${data.kpi[2]?.value ?? "—"}위입니다.`,
-    ],
-    traveler: topIndustry
-      ? [
-          `${topIndustry.name}이(가) 지역 탄소의 ${formatDecimal(topIndustry.share, 1)}%를 차지합니다.`,
-          "대중교통·로컬 소비 선택이 탄소 절감에 도움이 됩니다.",
-        ]
-      : ["업종별 데이터가 충분하지 않습니다."],
-    policy: topIndustry
-      ? [
-          `${topIndustry.name} 중심의 에너지·운영 효율 개선을 검토할 수 있습니다.`,
-          "성수기 집중 구간의 수요 분산·친환경 이동 수단 확대를 권장합니다.",
-        ]
-      : ["지자체 맞춤 정책 수립을 위해 추가 데이터가 필요합니다."],
-  };
-}
