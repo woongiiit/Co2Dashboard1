@@ -47,6 +47,9 @@ export function IndustryDeepAnalysisContent() {
           next.sidoCode === prev.sidoCode &&
           next.regionLabel === prev.regionLabel &&
           next.majorCode === prev.majorCode &&
+          next.midCode === prev.midCode &&
+          next.periodStart === prev.periodStart &&
+          next.periodEnd === prev.periodEnd &&
           next.compare === prev.compare;
         return unchanged ? prev : next;
       });
@@ -157,7 +160,7 @@ export function IndustryDeepAnalysisContent() {
 
       <div className="deep-analysis-dashboard">
         <DashboardCard
-          title="월별 관광 탄소발자국 추세 (2023.01 ~ 2026.04)"
+            title={`월별 관광 탄소발자국 추세 (${filters.periodStart} ~ ${filters.periodEnd})`}
           className="deep-analysis-dashboard__trend dashboard-card--fill"
         >
           {loading && !data ? (

@@ -1,16 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
+import { FilterPeriodRange } from "@/components/dashboard/FilterPeriodRange";
 import { FilterSelect } from "@/components/dashboard/FilterSelect";
 import {
   COMPARE_CRITERIA_HINT,
   COMPARE_OPTIONS,
-  INDUSTRY_FILTER_OPTIONS,
 } from "@/components/dashboard/filter-options";
 import {
   KOREA_SIDO_OPTIONS,
   getSigunguOptionsForSido,
 } from "@/lib/korea-admin-regions";
+import { IndustryClassificationFilters } from "@/components/industry/IndustryClassificationFilters";
 import type { IndustryDeepAnalysisQuery } from "@/lib/industry-excel/types";
 
 type DeepAnalysisPageFiltersProps = {
@@ -31,6 +32,7 @@ export function DeepAnalysisPageFilters({
     [filters.sidoCode],
   );
 
+  // 시도 변경 시 시군구 초기화
   useEffect(() => {
     if (filters.regionLabel === "all") return;
     const valid = sigunguOptions.some(
@@ -41,12 +43,6 @@ export function DeepAnalysisPageFilters({
     }
   }, [filters.regionLabel, sigunguOptions, onFiltersChange]);
 
-  const updateFilter = useCallback(
-    (key: keyof IndustryDeepAnalysisQuery, value: string) => {
-      onFiltersChange({ [key]: value });
-    },
-    [onFiltersChange],
-  );
 
   return (
     <>
@@ -68,7 +64,9 @@ export function DeepAnalysisPageFilters({
           id="deep-sigungu"
           className="filter-control__select"
           value={filters.regionLabel}
-          onChange={(e) => updateFilter("regionLabel", e.target.value)}
+          onChange={(e) =>
+            onFiltersChange({ regionLabel: e.target.value })
+          }
         >
           {sigunguOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -78,14 +76,14 @@ export function DeepAnalysisPageFilters({
         </select>
       </label>
 
-      <FilterSelect
-        key={`industry-${resetKey}`}
-        id="deep-industry"
-        label="업종"
-        options={INDUSTRY_FILTER_OPTIONS}
-        value={filters.majorCode}
-        onChange={(value) => updateFilter("majorCode", value)}
+      <FilterPeriodRange
+        idPrefix="industry-deep-period"
+        start={filters.periodStart}
+        end={filters.periodEnd}
+        onStartChange={(value) => onFiltersChange({ periodStart: value })}
+        onEndChange={(value) => onFiltersChange({ periodEnd: value })}
       />
+
       <FilterSelect
         key={`compare-${resetKey}`}
         id="deep-compare"
@@ -94,9 +92,20 @@ export function DeepAnalysisPageFilters({
         hint={COMPARE_CRITERIA_HINT}
         value={filters.compare}
         onChange={(value) =>
-          updateFilter("compare", value === "prev" ? "prev" : "yoy")
+          onFiltersChange({
+            compare: value === "prev" ? "prev" : "yoy",
+          })
         }
       />
+
+      <IndustryClassificationFilters
+        majorCode={filters.majorCode}
+        midCode={filters.midCode}
+        onFiltersChange={(patch) => onFiltersChange(patch)}
+        majorId="industry-deep-major"
+        midId="industry-deep-mid"
+      />
+
       <button
         type="button"
         className="btn btn--secondary deep-analysis-filter__reset"

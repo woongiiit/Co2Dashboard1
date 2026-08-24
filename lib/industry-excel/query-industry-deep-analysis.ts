@@ -8,6 +8,7 @@ import { getIndustryKpiIconSrc } from "@/lib/industry-kpi-icons";
 import {
   getExcelColumnsForMajor,
   getMajorIndustryDefinitions,
+  resolveIndustryColumns,
 } from "@/lib/industry-excel/excel-columns";
 import {
   buildIndustryCompareReliability,
@@ -32,8 +33,8 @@ import {
 import { filterRowsPointInTime } from "@/lib/region-excel/resolve-admin-boundary";
 import type { RegionExcelRow, RegionTrendSeries } from "@/lib/region-excel/types";
 
-const PERIOD_START = "2023-01";
-const PERIOD_END = "2026-04";
+const DEFAULT_PERIOD_START = "2023-01";
+const DEFAULT_PERIOD_END = "2026-04";
 const TREND_YEARS: TrendYear[] = ["2023", "2024", "2025", "2026"];
 
 const COMPOSITION_MONTHS = [
@@ -60,8 +61,8 @@ function filterDeepAnalysisRows(
   return filterIndustryScopeRows(allRows, {
     sidoCode: query.sidoCode,
     regionLabel: query.regionLabel,
-    periodStart: PERIOD_START,
-    periodEnd: PERIOD_END,
+    periodStart: query.periodStart ?? DEFAULT_PERIOD_START,
+    periodEnd: query.periodEnd ?? DEFAULT_PERIOD_END,
   });
 }
 
@@ -104,6 +105,7 @@ function buildYearlyKpi(rows: RegionExcelRow[], columns: string[]): KpiItem[] {
       unitOnLabel: true,
       icon: "industry-carbon",
       iconSrc,
+      carbonTco2eq: y2023,
     },
     {
       label: "2024 총량",
@@ -114,6 +116,7 @@ function buildYearlyKpi(rows: RegionExcelRow[], columns: string[]): KpiItem[] {
       changeDirection: change2024.direction,
       icon: "industry-carbon",
       iconSrc,
+      carbonTco2eq: y2024,
     },
     {
       label: "2025 총량",
@@ -124,6 +127,7 @@ function buildYearlyKpi(rows: RegionExcelRow[], columns: string[]): KpiItem[] {
       changeDirection: change2025.direction,
       icon: "industry-carbon",
       iconSrc,
+      carbonTco2eq: y2025,
     },
     {
       label: "2026.01~04 총량",
@@ -134,6 +138,7 @@ function buildYearlyKpi(rows: RegionExcelRow[], columns: string[]): KpiItem[] {
       changeDirection: change2026.direction,
       icon: "industry-carbon",
       iconSrc,
+      carbonTco2eq: y2026,
     },
   ];
 }
@@ -141,6 +146,8 @@ function buildYearlyKpi(rows: RegionExcelRow[], columns: string[]): KpiItem[] {
 function buildMonthlyTrend(
   rows: RegionExcelRow[],
   columns: string[],
+  periodStart: string,
+  periodEnd: string,
 ): RegionTrendSeries {
   const monthlyTotals = new Map<string, number>();
 
@@ -157,7 +164,7 @@ function buildMonthlyTrend(
   for (const year of TREND_YEARS) {
     series[year] = MONTH_LABELS.map((_, index) => {
       const ym = `${Number(year)}-${String(index + 1).padStart(2, "0")}`;
-      if (!isYmInRange(ym, PERIOD_START, PERIOD_END)) return null;
+      if (!isYmInRange(ym, periodStart, periodEnd)) return null;
       const value = monthlyTotals.get(`${Number(year)}-${index + 1}`);
       return value == null ? null : Math.round(value);
     });
@@ -318,28 +325,46 @@ export function queryIndustryDeepAnalysis(
 ): IndustryDeepAnalysisData {
   const allRows = loadRegionExcelRows();
   const rows = filterDeepAnalysisRows(allRows, query);
-  const columns = getExcelColumnsForMajor(query.majorCode);
+  const columns = resolveIndustryColumns(query.majorCode, query.midCode ?? "all");
   const { compareReliability, boundaryWarnings } = buildIndustryCompareReliability({
-    periodStart: PERIOD_START,
-    periodEnd: PERIOD_END,
+    periodStart: query.periodStart ?? DEFAULT_PERIOD_START,
+    periodEnd: query.periodEnd ?? DEFAULT_PERIOD_END,
     compare: query.compare,
   });
 
-  const monthlyTrend = buildMonthlyTrend(rows, columns);
+  const monthlyTrend = buildMonthlyTrend(
+    rows,
+    columns,
+    query.periodStart ?? DEFAULT_PERIOD_START,
+    query.periodEnd ?? DEFAULT_PERIOD_END,
+  );
   const major = INDUSTRY_CLASSIFICATION.find((item) => item.value === query.majorCode);
+  const mid = major?.mid.find((item) => item.value === query.midCode);
+
+  let industryLabel: string;
+  if (query.midCode && query.midCode !== "all") {
+    industryLabel = mid?.label ?? "선택 중분류";
+  } else if (query.majorCode !== "all") {
+    industryLabel = major?.label ?? "선택 업종";
+  } else {
+    industryLabel = "전체 업종";
+  }
 
   return {
-    periodLabel: formatPeriodLabel(PERIOD_START, PERIOD_END),
+    periodLabel: formatPeriodLabel(
+      query.periodStart ?? DEFAULT_PERIOD_START,
+      query.periodEnd ?? DEFAULT_PERIOD_END,
+    ),
     scopeLabel: formatIndustryScopeLabel({
       sidoCode: query.sidoCode,
       regionLabel: query.regionLabel,
-      periodStart: PERIOD_START,
-      periodEnd: PERIOD_END,
+      periodStart: query.periodStart ?? DEFAULT_PERIOD_START,
+      periodEnd: query.periodEnd ?? DEFAULT_PERIOD_END,
       compare: query.compare,
       majorCode: query.majorCode,
-      midCode: "all",
+      midCode: query.midCode ?? "all",
     }),
-    industryLabel: major?.label ?? "전체 업종",
+    industryLabel,
     kpi: buildYearlyKpi(rows, columns),
     monthlyTrend,
     composition: buildComposition(rows),

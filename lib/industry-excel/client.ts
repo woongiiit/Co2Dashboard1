@@ -37,7 +37,10 @@ export const DEFAULT_INDUSTRY_DASHBOARD_QUERY: IndustryDashboardQuery = {
 export const DEFAULT_INDUSTRY_DEEP_ANALYSIS_QUERY: IndustryDeepAnalysisQuery = {
   sidoCode: "all",
   regionLabel: "all",
+  periodStart: DEFAULT_PERIOD_START,
+  periodEnd: DEFAULT_PERIOD_END,
   majorCode: "all",
+  midCode: "all",
   compare: "yoy",
 };
 
@@ -47,7 +50,10 @@ export function buildIndustryDeepAnalysisSearchParams(
   const params = new URLSearchParams();
   params.set("sido", filters.sidoCode);
   params.set("region", filters.regionLabel);
+  params.set("start", filters.periodStart);
+  params.set("end", filters.periodEnd);
   params.set("industry", filters.majorCode);
+  params.set("mid", filters.midCode);
   params.set("compare", filters.compare);
   return params;
 }
@@ -98,7 +104,12 @@ export function parseIndustryDeepAnalysisQuery(
   return {
     sidoCode,
     regionLabel,
+    periodStart:
+      searchParams.get("start") ?? DEFAULT_INDUSTRY_DEEP_ANALYSIS_QUERY.periodStart,
+    periodEnd:
+      searchParams.get("end") ?? DEFAULT_INDUSTRY_DEEP_ANALYSIS_QUERY.periodEnd,
     majorCode: searchParams.get("industry") ?? DEFAULT_INDUSTRY_DEEP_ANALYSIS_QUERY.majorCode,
+    midCode: searchParams.get("mid") ?? "all",
     compare: compare === "prev" ? "prev" : "yoy",
   };
 }
@@ -125,7 +136,10 @@ export function mapDashboardQueryToDeepAnalysis(
   return {
     sidoCode: query.sidoCode,
     regionLabel: query.regionLabel,
+    periodStart: query.periodStart,
+    periodEnd: query.periodEnd,
     majorCode,
+    midCode: query.midCode,
     compare: query.compare,
   };
 }

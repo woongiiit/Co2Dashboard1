@@ -48,7 +48,10 @@ export type IndustryDeepAnalysisCompare = "yoy" | "prev";
 export type IndustryDeepAnalysisQuery = {
   sidoCode: string;
   regionLabel: string;
+  periodStart: string;
+  periodEnd: string;
   majorCode: string;
+  midCode: string;
   compare: IndustryDeepAnalysisCompare;
 };
 
