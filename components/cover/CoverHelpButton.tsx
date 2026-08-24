@@ -1,10 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import {
-  COVER_HELP_ICON_SRC,
-  REGION_SOURCE_EXCEL_DOWNLOAD_PATH,
-} from "@/lib/cover-help";
+import { useCallback, useRef } from "react";
+import { COVER_HELP_ICON_SRC } from "@/lib/cover-help";
 import { ADMIN_BOUNDARY_REVISIONS } from "@/lib/region-excel/admin-boundary-registry";
 
 const BOUNDARY_POLICY = [
@@ -130,88 +127,6 @@ function FlowStepIcon({ step }: { step: number }) {
   }
 }
 
-function DownloadIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path
-        d="M10 3v9m0 0 3.5-3.5M10 12 6.5 8.5M4 14.5v1.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1.5"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function parseDownloadFilename(contentDisposition: string | null): string | null {
-  if (!contentDisposition) return null;
-
-  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
-  if (utf8Match?.[1]) {
-    try {
-      return decodeURIComponent(utf8Match[1]);
-    } catch {
-      return utf8Match[1];
-    }
-  }
-
-  const asciiMatch = contentDisposition.match(/filename="([^"]+)"/i);
-  return asciiMatch?.[1] ?? null;
-}
-
-type DataScopeDownloadButtonProps = {
-  className?: string;
-};
-
-function DataScopeDownloadButton({ className }: DataScopeDownloadButtonProps) {
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const handleDownload = useCallback(async () => {
-    if (isDownloading) return;
-
-    setIsDownloading(true);
-
-    try {
-      const response = await fetch(REGION_SOURCE_EXCEL_DOWNLOAD_PATH);
-
-      if (!response.ok) {
-        throw new Error("download failed");
-      }
-
-      const blob = await response.blob();
-      const filename =
-        parseDownloadFilename(response.headers.get("Content-Disposition")) ??
-        "CARD_최종(260719).xlsx";
-      const objectUrl = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = objectUrl;
-      anchor.download = filename;
-      anchor.rel = "noopener";
-      anchor.click();
-      URL.revokeObjectURL(objectUrl);
-    } catch {
-      window.alert("엑셀 파일을 다운로드하지 못했습니다.");
-    } finally {
-      setIsDownloading(false);
-    }
-  }, [isDownloading]);
-
-  return (
-    <div className={className}>
-      <button
-        type="button"
-        className="calc-guide-scope__download-btn"
-        onClick={handleDownload}
-        disabled={isDownloading}
-      >
-        <DownloadIcon />
-        {isDownloading ? "다운로드 중…" : "원본 엑셀 다운로드"}
-      </button>
-    </div>
-  );
-}
-
 function CloseIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -319,9 +234,25 @@ export function CoverCalculationGuideDialog({
               <section className="calc-guide-formula" aria-label="산정식 개요">
                 <h3 className="calc-guide-section__title">산정식(개요)</h3>
                 <p className="calc-guide-formula__equation">
-                  최종 관광 탄소발자국 (kgCO₂e) = Σ [ (업종별 소비금액<sub>i</sub> ×
-                  업종별 탄소배출계수<sub>i</sub> × 전문가 조정승수<sub>i</sub> × 지역
-                  에너지 보정계수) + 이동 관련 탄소발자국 ]
+                  <span className="calc-guide-formula__line">
+                    <span className="calc-guide-formula__chunk calc-guide-formula__chunk--tight">
+                      최종 관광 탄소발자국 (kgCO₂e) =
+                    </span>{" "}
+                    <span className="calc-guide-formula__chunk calc-guide-formula__chunk--tight">
+                      Σ [
+                    </span>
+                  </span>
+                  <span className="calc-guide-formula__line">
+                    <span className="calc-guide-formula__chunk">
+                      (업종별 소비금액<sub>i</sub> × 업종별 탄소배출계수<sub>i</sub> ×
+                      전문가 조정승수<sub>i</sub> × 지역 에너지 보정계수)
+                    </span>
+                  </span>
+                  <span className="calc-guide-formula__line">
+                    <span className="calc-guide-formula__chunk calc-guide-formula__chunk--tight">
+                      + 이동 관련 탄소발자국 ]
+                    </span>
+                  </span>
                 </p>
                 <p className="calc-guide-formula__legend">
                   <span>
@@ -360,7 +291,6 @@ export function CoverCalculationGuideDialog({
                     </li>
                   ))}
                 </ul>
-                <DataScopeDownloadButton className="calc-guide-scope__actions" />
               </section>
 
               <section
