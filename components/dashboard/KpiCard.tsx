@@ -1,5 +1,6 @@
 import type { KpiItem } from "@/lib/mock-dashboard-data";
 import { isAttachedUnit } from "@/lib/format/number-unit";
+import { CarbonTreeEquivalentHint } from "./CarbonTreeEquivalentHint";
 import { KpiCardIcon } from "./KpiCardIcon";
 
 type KpiCardProps = KpiItem;
@@ -16,6 +17,7 @@ export function KpiCard({
   unitOnLabel = false,
   unitOnValue = false,
   valueTone = "neutral",
+  carbonTco2eq,
 }: KpiCardProps) {
   const changeClass =
     changeDirection === "up"
@@ -60,7 +62,12 @@ export function KpiCard({
             <KpiCardIcon variant={icon} src={iconSrc} />
           </span>
           <div className="kpi-card__label-wrap">
-            <p className="kpi-card__label">{label}</p>
+            <div className="kpi-card__label-row">
+              <p className="kpi-card__label">{label}</p>
+              {carbonTco2eq != null && carbonTco2eq > 0 ? (
+                <CarbonTreeEquivalentHint tco2eq={carbonTco2eq} />
+              ) : null}
+            </div>
             {unit && unitOnLabel ? (
               <p className="kpi-card__unit-label">{unit}</p>
             ) : null}

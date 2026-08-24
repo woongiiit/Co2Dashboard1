@@ -270,6 +270,7 @@ function buildAggregateKpi(
       hint: formatPeriodLabel(query.periodStart, query.periodEnd),
       icon: "ai-total-carbon",
       iconSrc: getAiConsultingKpiIconSrc("ai-total-carbon"),
+      carbonTco2eq: kpiValueToTco2eq(totalKpi),
     },
     {
       label: query.scope === "national" ? "배출 1위 시군구" : "시도 내 1위 시군구",
@@ -346,6 +347,7 @@ function buildSigunguKpi(
       hint: detail.periodLabel,
       icon: "ai-total-carbon",
       iconSrc: getAiConsultingKpiIconSrc("ai-total-carbon"),
+      carbonTco2eq: detail.mapValue,
     },
     {
       label: "전국 시군구 순위 (Top 10)",

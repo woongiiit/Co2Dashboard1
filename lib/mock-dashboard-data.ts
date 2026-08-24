@@ -22,6 +22,8 @@ export type KpiItem = {
   unitOnValue?: boolean;
   /** Main value uses up/down accent (e.g. 전년 대비 증감률) */
   valueTone?: "up" | "down" | "neutral";
+  /** tCO₂eq 원값 — 나무 환산 툴팁 등 부가 UI용 */
+  carbonTco2eq?: number;
 };
 
 export const MOCK_PERIOD = "2023.01 ~ 2026.04";
