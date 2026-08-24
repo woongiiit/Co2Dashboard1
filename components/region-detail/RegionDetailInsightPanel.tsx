@@ -1,4 +1,9 @@
 import Link from "next/link";
+import { InfoTooltipHint } from "@/components/dashboard/InfoTooltipHint";
+import {
+  getSimilarRegionDefinitionAriaLabel,
+  SIMILAR_REGION_DEFINITION_LINES,
+} from "@/lib/region-excel/similar-region-definition";
 import type { RegionDetailInsightsSections } from "@/lib/region-excel/types";
 
 type RegionDetailInsightPanelProps = {
@@ -41,6 +46,16 @@ export function RegionDetailInsightPanel({
     <div className="region-detail-insight">
       <div className="region-detail-insight__badge" aria-hidden="true">
         AI
+      </div>
+
+      <div className="region-detail-insight__topbar">
+        <InfoTooltipHint
+          label={getSimilarRegionDefinitionAriaLabel()}
+          triggerLabel="유사지역"
+          placement="left"
+          title="유사 지역"
+          lines={SIMILAR_REGION_DEFINITION_LINES}
+        />
       </div>
 
       {loading ? (
