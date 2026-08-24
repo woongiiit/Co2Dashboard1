@@ -85,7 +85,7 @@ export function RegionCarbonMap({
           source: SOURCE_ID,
           paint: {
             "fill-color": fillColorExpression as maplibregl.ExpressionSpecification,
-            "fill-opacity": 0.82,
+            "fill-opacity": 0.4,
           },
         });
 
@@ -236,7 +236,6 @@ export function RegionCarbonMap({
     <div className={`carbon-map ${className}`.trim()}>
       <div className="carbon-map__frame">
         <div ref={containerRef} className="carbon-map__canvas" role="application" aria-label="시군구 관광 탄소발자국 분포 지도" />
-        <CarbonMapLegend />
         {status === "loading" ? (
           <div className="carbon-map__overlay" aria-live="polite">
             지도를 불러오는 중…
@@ -247,6 +246,7 @@ export function RegionCarbonMap({
             {errorMessage ?? "지도를 표시할 수 없습니다."}
           </div>
         ) : null}
+        <CarbonMapLegend />
       </div>
     </div>
   );

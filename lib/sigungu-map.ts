@@ -79,9 +79,10 @@ export const CARBON_LEGEND_STOPS = [
   },
 ];
 
+/** OpenFreeMap Liberty — 2ndDash와 동일한 무료 벡터 베이스맵 */
 export const DEFAULT_MAP_STYLE =
   process.env.NEXT_PUBLIC_MAP_STYLE_URL ??
-  "https://demotiles.maplibre.org/style.json";
+  "https://tiles.openfreemap.org/styles/liberty";
 
 export const MUNICIPALITIES_GEOJSON_URL = "/data/skorea-municipalities.geojson";
 
