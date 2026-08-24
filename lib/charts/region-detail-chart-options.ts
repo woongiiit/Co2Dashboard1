@@ -26,6 +26,9 @@ export function buildIndustryCompositionOptions(
     color: PIE_COLORS,
     tooltip: {
       trigger: "item",
+      // 카드/컨테이너 `overflow:hidden` 때문에 툴팁이 잘리는 것을 방지한다.
+      appendToBody: true,
+      confine: false,
       formatter: (params: unknown) => {
         const p = params as { name?: string; value?: number; percent?: number };
         return `${p.name}<br/>${formatCo2(Number(p.value))} tCO₂eq (${p.percent}%)`;
@@ -41,6 +44,7 @@ export function buildIndustryCompositionOptions(
         data: items.map((item) => ({
           name: item.name,
           value: item.value,
+          itemStyle: item.color ? { color: item.color } : undefined,
         })),
       },
     ],

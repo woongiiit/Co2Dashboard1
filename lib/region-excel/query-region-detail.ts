@@ -18,7 +18,10 @@ import {
   rawCarbonToTco2eq,
   shiftYmByYears,
 } from "@/lib/region-excel/format";
-import { REGION_INDUSTRY_COLUMN_GROUPS } from "@/lib/region-excel/industry-groups";
+import {
+  REGION_INDUSTRY_MAJOR_GROUPS,
+  REGION_MID_INDUSTRY_ITEMS,
+} from "@/lib/region-excel/industry-groups";
 import { loadRegionExcelRows } from "@/lib/region-excel/load-region-data";
 import {
   aggregateByDisplayLabel,
@@ -151,21 +154,20 @@ function computeRanks(
   };
 }
 
-function sumIndustryGroups(rows: RegionExcelRow[]): { name: string; value: number }[] {
-  const totals = new Map<string, number>();
+function sumIndustryGroups(
+  rows: RegionExcelRow[],
+): Array<{ name: string; value: number; color: string }> {
+  const pointInTimeRows = filterRowsPointInTime(rows);
 
-  for (const [groupName, columns] of Object.entries(REGION_INDUSTRY_COLUMN_GROUPS)) {
+  return REGION_INDUSTRY_MAJOR_GROUPS.map((group) => {
     let sum = 0;
-    for (const row of filterRowsPointInTime(rows)) {
-      for (const column of columns) {
+    for (const row of pointInTimeRows) {
+      for (const column of group.columns) {
         sum += rawCarbonToTco2eq(row.industries?.[column] ?? 0);
       }
     }
-    totals.set(groupName, sum);
-  }
-
-  return [...totals.entries()]
-    .map(([name, value]) => ({ name, value }))
+    return { name: group.label, value: sum, color: group.color };
+  })
     .filter((item) => item.value > 0)
     .sort((a, b) => b.value - a.value);
 }
@@ -179,15 +181,30 @@ function buildIndustryComposition(rows: RegionExcelRow[]) {
     name: item.name,
     value: Math.round(item.value),
     share: (item.value / total) * 100,
+    color: item.color,
   }));
 }
 
 function buildIndustryRanking(rows: RegionExcelRow[]): TableRow[] {
-  return buildIndustryComposition(rows).slice(0, 7).map((item, index) => ({
+  const pointInTimeRows = filterRowsPointInTime(rows);
+
+  const items = REGION_MID_INDUSTRY_ITEMS.map((mid) => {
+    let sum = 0;
+    for (const row of pointInTimeRows) {
+      sum += rawCarbonToTco2eq(row.industries?.[mid.column] ?? 0);
+    }
+    return { name: mid.label, value: sum };
+  })
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
+
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+
+  return items.map((item, index) => ({
     rank: index + 1,
     name: item.name,
-    value: formatInteger(item.value),
-    change: `${formatDecimal(item.share, 1)}%`,
+    value: formatInteger(Math.round(item.value)),
+    change: total > 0 ? `${formatDecimal((item.value / total) * 100, 1)}%` : "0.0%",
   }));
 }
 
@@ -389,6 +406,7 @@ function buildDetailKpi(
       hint: changeHint,
       icon: "detail-region-carbon",
       iconSrc: getRegionDetailKpiIconSrc("detail-region-carbon"),
+      carbonTco2eq: totalCarbon,
     },
     {
       label: "평균 탄소발자국 지수",

@@ -38,6 +38,7 @@ export type RegionDetailIndustryShare = {
   name: string;
   value: number;
   share: number;
+  color?: string;
 };
 
 export type RegionDetailComparisonItem = {

@@ -54,7 +54,8 @@ export function IndustryCompositionPanel({ items }: IndustryCompositionPanelProp
                 <span
                   className="industry-composition__dot"
                   style={{
-                    backgroundColor: TABLE_COLORS[index % TABLE_COLORS.length],
+                    backgroundColor:
+                      row.color ?? TABLE_COLORS[index % TABLE_COLORS.length],
                   }}
                   aria-hidden="true"
                 />
