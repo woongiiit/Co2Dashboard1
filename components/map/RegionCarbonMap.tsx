@@ -246,8 +246,8 @@ export function RegionCarbonMap({
             {errorMessage ?? "지도를 표시할 수 없습니다."}
           </div>
         ) : null}
-        <CarbonMapLegend />
       </div>
+      <CarbonMapLegend idPrefix="region-carbon-map-legend" variant="standalone" />
     </div>
   );
 }
