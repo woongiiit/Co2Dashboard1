@@ -1,4 +1,5 @@
 import type { KpiItem } from "@/lib/mock-dashboard-data";
+import { resolveKpiCarbonTco2eq } from "@/lib/carbon/kpi-carbon-equivalent";
 import { isAttachedUnit } from "@/lib/format/number-unit";
 import { CarbonTreeEquivalentHint } from "./CarbonTreeEquivalentHint";
 import { KpiCardIcon } from "./KpiCardIcon";
@@ -50,6 +51,12 @@ export function KpiCard({
       : unitOnValue || (!unitOnLabel && !icon));
   const unitAttachClass = isAttachedUnit(unit) ? " kpi-card__unit--attach" : "";
   const valueAttachClass = isAttachedUnit(unit) ? " kpi-card__value--attach" : "";
+  const equivalentTco2eq = resolveKpiCarbonTco2eq({
+    label,
+    value,
+    unit,
+    carbonTco2eq,
+  });
 
   if (icon) {
     return (
@@ -64,8 +71,8 @@ export function KpiCard({
           <div className="kpi-card__label-wrap">
             <div className="kpi-card__label-row">
               <p className="kpi-card__label">{label}</p>
-              {carbonTco2eq != null && carbonTco2eq > 0 ? (
-                <CarbonTreeEquivalentHint tco2eq={carbonTco2eq} />
+              {equivalentTco2eq != null ? (
+                <CarbonTreeEquivalentHint tco2eq={equivalentTco2eq} />
               ) : null}
             </div>
             {unit && unitOnLabel ? (
@@ -109,7 +116,12 @@ export function KpiCard({
 
   return (
     <article className="kpi-card">
-      <p className="kpi-card__label">{label}</p>
+      <div className="kpi-card__label-row">
+        <p className="kpi-card__label">{label}</p>
+        {equivalentTco2eq != null ? (
+          <CarbonTreeEquivalentHint tco2eq={equivalentTco2eq} />
+        ) : null}
+      </div>
 
       <p className={`kpi-card__value${valueAttachClass} ${valueToneClass}`.trim()}>
         {showValueArrow ? (

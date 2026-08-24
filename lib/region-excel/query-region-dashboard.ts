@@ -232,6 +232,7 @@ function buildKpi(
       changeDirection: totalChange.direction,
       icon: "region-total-carbon",
       iconSrc: getRegionKpiIconSrc("region-total-carbon"),
+      carbonTco2eq: totalCarbon,
     },
     {
       label: "평균 탄소발자국 지수",
@@ -250,6 +251,7 @@ function buildKpi(
       changeDirection: monthlyChange.direction,
       icon: "region-spend-intensity",
       iconSrc: getRegionKpiIconSrc("region-spend-intensity"),
+      carbonTco2eq: monthlyAverage,
     },
     {
       label: "상위 20% 시군구 비중",

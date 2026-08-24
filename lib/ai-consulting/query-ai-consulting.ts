@@ -1,5 +1,6 @@
 import type { KpiItem } from "@/lib/mock-dashboard-data";
 import { getAiConsultingKpiIconSrc } from "@/lib/ai-consulting-kpi-icons";
+import { kpiDisplayValueToTco2eq } from "@/lib/carbon/kpi-carbon-equivalent";
 import { getMajorIndustryDefinitions } from "@/lib/industry-excel/excel-columns";
 import { sumIndustryColumns } from "@/lib/industry-excel/shared";
 import {
@@ -168,13 +169,6 @@ function findDetailKpi(
   return detail.kpi.find((item) => item.label.includes(labelIncludes));
 }
 
-function kpiValueToTco2eq(kpi: KpiItem): number {
-  const amount = Number.parseFloat(kpi.value.replace(/,/g, "") || "0");
-  const unit = kpi.unit ?? "";
-  if (unit.includes("백만")) return amount * 1_000_000;
-  if (unit.includes("천")) return amount * 1_000;
-  return amount;
-}
 
 function buildSigunguRadar(
   detail: ReturnType<typeof queryRegionDetail>,
@@ -182,7 +176,7 @@ function buildSigunguRadar(
 ): AiConsultingRadarData {
   const totalKpi = findDetailKpi(detail, "총") ?? detail.kpi[0]!;
   const indexKpi = findDetailKpi(detail, "평균") ?? detail.kpi[1];
-  const regionTotalNum = kpiValueToTco2eq(totalKpi);
+  const regionTotalNum = kpiDisplayValueToTco2eq(totalKpi.value, totalKpi.unit);
   const nationalItem = detail.comparison.find((item) => item.label === "전국 평균");
   const nationalAvg = nationalItem?.value ?? regionTotalNum;
   const totalScore = clampScore((regionTotalNum / Math.max(1, nationalAvg)) * 50);
@@ -270,7 +264,7 @@ function buildAggregateKpi(
       hint: formatPeriodLabel(query.periodStart, query.periodEnd),
       icon: "ai-total-carbon",
       iconSrc: getAiConsultingKpiIconSrc("ai-total-carbon"),
-      carbonTco2eq: kpiValueToTco2eq(totalKpi),
+      carbonTco2eq: kpiDisplayValueToTco2eq(totalKpi.value, totalKpi.unit),
     },
     {
       label: query.scope === "national" ? "배출 1위 시군구" : "시도 내 1위 시군구",
