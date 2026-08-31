@@ -5,7 +5,7 @@ import { DashboardFilterBar } from "@/components/dashboard/DashboardFilterBar";
 import { DashboardScopeNotice } from "@/components/dashboard/DashboardScopeNotice";
 import { KpiCardRow } from "@/components/dashboard/KpiCardRow";
 import { DashboardCard } from "@/components/dashboard/DashboardCard";
-import { PlaceholderTable } from "@/components/dashboard/PlaceholderTable";
+import { RegionRankingPanel } from "@/components/region/RegionRankingPanel";
 import { AiInsightCard } from "@/components/dashboard/AiInsightCard";
 import { RegionCarbonMapLazy } from "@/lib/lazy-dashboard-components";
 import dynamic from "next/dynamic";
@@ -164,10 +164,7 @@ export function RegionDashboardContent() {
           {loading && !data ? (
             <PanelSkeleton variant="chart" label="순위 불러오는 중…" />
           ) : (
-            <PlaceholderTable
-              columns={["순위", "시군구", "총 관광 탄소발자국", "전년 대비"]}
-              rows={data?.ranking ?? []}
-            />
+            <RegionRankingPanel rows={data?.ranking ?? []} />
           )}
         </DashboardCard>
 

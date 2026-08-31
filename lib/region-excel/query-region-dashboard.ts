@@ -156,7 +156,6 @@ function buildRanking(
 
   return [...currentTotals.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
     .map(([name, value], index) => {
       const previous = compareTotals.get(name) ?? 0;
       const change = formatChangePercent(value, previous);

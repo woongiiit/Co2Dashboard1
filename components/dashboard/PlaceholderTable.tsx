@@ -4,15 +4,19 @@ type PlaceholderTableProps = {
   columns: string[];
   rows: TableRow[];
   valueLabel?: string;
+  showNote?: boolean;
+  className?: string;
 };
 
 export function PlaceholderTable({
   columns,
   rows,
   valueLabel = "탄소발자국",
+  showNote = true,
+  className = "",
 }: PlaceholderTableProps) {
   return (
-    <div className="placeholder-table-wrap">
+    <div className={`placeholder-table-wrap ${className}`.trim()}>
       <table className="placeholder-table">
         <thead>
           <tr>
@@ -39,9 +43,11 @@ export function PlaceholderTable({
           ))}
         </tbody>
       </table>
-      <p className="placeholder-table__note">
-        * {valueLabel} 기준 임시 순위 데이터입니다.
-      </p>
+      {showNote ? (
+        <p className="placeholder-table__note">
+          * {valueLabel} 기준 임시 순위 데이터입니다.
+        </p>
+      ) : null}
     </div>
   );
 }

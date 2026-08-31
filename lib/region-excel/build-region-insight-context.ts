@@ -72,7 +72,7 @@ export function buildRegionInsightContext(
       change: item.change,
       hint: item.hint,
     })),
-    rankingTop10: data.ranking.map((row) => ({
+    rankingTop10: data.ranking.slice(0, 10).map((row) => ({
       rank: row.rank,
       region: row.name,
       totalTco2eq: row.value,
