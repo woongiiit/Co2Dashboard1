@@ -32,8 +32,35 @@ export function normalizeRegionLabel(regionLabel: string): string {
   return trimmed;
 }
 
+/**
+ * 조회·조인용 키.
+ * UI/GeoJSON(`전주시완산구`)과 엑셀(`전주시 완산구`) 공백 표기 차이를 무시한다.
+ */
+export function regionLabelMatchKey(regionLabel: string): string {
+  return normalizeRegionLabel(regionLabel).replace(/\s+/g, "");
+}
+
 export function regionLabelsMatch(a: string, b: string): boolean {
-  return normalizeRegionLabel(a) === normalizeRegionLabel(b);
+  return regionLabelMatchKey(a) === regionLabelMatchKey(b);
+}
+
+/** mapByLabel 등 라벨→값 맵에서 공백 표기 차이를 허용해 조회 */
+export function lookupByRegionLabel<T>(
+  valuesByLabel: Record<string, T> | Map<string, T> | undefined,
+  regionLabel: string,
+): T | undefined {
+  if (!valuesByLabel) return undefined;
+
+  const entries =
+    valuesByLabel instanceof Map
+      ? valuesByLabel.entries()
+      : Object.entries(valuesByLabel);
+
+  const targetKey = regionLabelMatchKey(regionLabel);
+  for (const [label, value] of entries) {
+    if (regionLabelMatchKey(label) === targetKey) return value;
+  }
+  return undefined;
 }
 
 export function findRowByRegionLabel(

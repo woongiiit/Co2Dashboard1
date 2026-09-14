@@ -3,6 +3,7 @@ import { MONTH_LABELS } from "@/lib/charts/monthly-carbon-trend-data";
 import type { CompareReliability } from "@/lib/region-excel/admin-boundary-types";
 import {
   findRowByRegionLabel,
+  lookupByRegionLabel,
   normalizeRegionLabel,
   regionLabelsMatch,
   rowMatchesRegionLabel,
@@ -304,9 +305,9 @@ function findSimilarRegionLabels(
   targetLabel: string,
   count = 3,
 ): string[] {
-  const targetValue = totals.get(targetLabel) ?? 0;
+  const targetValue = lookupByRegionLabel(totals, targetLabel) ?? 0;
   return [...totals.entries()]
-    .filter(([label]) => label !== targetLabel)
+    .filter(([label]) => !regionLabelsMatch(label, targetLabel))
     .sort(
       (a, b) =>
         Math.abs(a[1] - targetValue) - Math.abs(b[1] - targetValue),
@@ -317,7 +318,10 @@ function findSimilarRegionLabels(
 
 function averageForLabels(totals: Map<string, number>, labels: string[]): number {
   if (labels.length === 0) return 0;
-  const sum = labels.reduce((acc, label) => acc + (totals.get(label) ?? 0), 0);
+  const sum = labels.reduce(
+    (acc, label) => acc + (lookupByRegionLabel(totals, label) ?? 0),
+    0,
+  );
   return sum / labels.length;
 }
 

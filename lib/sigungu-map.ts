@@ -1,4 +1,9 @@
 import type { Feature, FeatureCollection, Geometry } from "geojson";
+import {
+  lookupByRegionLabel,
+  regionLabelMatchKey,
+  regionLabelsMatch,
+} from "@/lib/region-excel/admin-boundary-registry";
 
 /** KOSTAT 2013 시군구 코드 앞 2자리 → 시도 명칭 */
 const SIDO_BY_CODE_PREFIX: Record<string, string> = {
@@ -123,7 +128,9 @@ export function enrichMunicipalitiesGeoJson(
     const name = String(props.name ?? "");
     const label = buildSigunguLabel(code, name);
     const co2 =
-      co2ByLabel != null ? (co2ByLabel[label] ?? 0) : mockCarbonForCode(code);
+      co2ByLabel != null
+        ? (lookupByRegionLabel(co2ByLabel, label) ?? 0)
+        : mockCarbonForCode(code);
 
     return {
       ...feature,
@@ -243,15 +250,15 @@ export function findSigunguFeatureByLabel(
   features: SigunguGeoFeature[],
   regionLabel: string,
 ): SigunguGeoFeature | undefined {
-  const normalized = regionLabel.replace(/\s+/g, " ").trim();
-  const exact = features.find((f) => f.properties.label === normalized);
+  const exact = features.find((f) =>
+    regionLabelsMatch(f.properties.label, regionLabel),
+  );
   if (exact) return exact;
 
-  const sigunguName = normalized.split(" ").at(-1);
-  if (!sigunguName) return undefined;
-
+  const compactLabel = regionLabelMatchKey(regionLabel);
   return features.find((feature) => {
-    if (feature.properties.name !== sigunguName) return false;
-    return normalized === feature.properties.label || normalized.endsWith(sigunguName);
+    const compactName = regionLabelMatchKey(feature.properties.name);
+    if (!compactName || !compactLabel.endsWith(compactName)) return false;
+    return regionLabelMatchKey(feature.properties.label).endsWith(compactName);
   });
 }
