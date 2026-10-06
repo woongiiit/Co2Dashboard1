@@ -36,6 +36,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# local runtime secrets (환경 설정 모달 저장값 — 공유 zip에 포함하지 않음)
+/data/runtime/
+
 # vercel / tooling
 .vercel
 

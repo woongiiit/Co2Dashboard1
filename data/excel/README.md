@@ -14,7 +14,7 @@ data/excel/
 
 ## 사용 방법
 
-1. **운영 원본**: `region/■중요■CARD_최종(260719).xlsx`
+1. **운영 원본**: `region/[최종]CARD_final.xlsx`
 2. JSON 변환:
    ```bash
    pip install -r data/processor/requirements.txt
@@ -29,7 +29,7 @@ data/excel/
 
 ```
 data/excel/region/
-├── ■중요■CARD_최종(260719).xlsx   # 운영 원본
+├── [최종]CARD_final.xlsx            # 운영 원본
 ├── region-dashboard.json            # 변환 결과
 └── archive/                         # 구버전 xlsx
 ```

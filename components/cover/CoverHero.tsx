@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { CoverNavigationOverlay } from "@/components/cover/CoverNavigationOverlay";
 import { CoverRoutePrefetch } from "@/components/cover/CoverRoutePrefetch";
 import { CoverHelpButton } from "@/components/cover/CoverHelpButton";
+import { CoverSettingsButton } from "@/components/cover/CoverSettingsButton";
 import { HeroCard } from "@/components/cover/HeroCard";
 import { COVER_NAV_ITEMS } from "@/lib/cover-nav-items";
 
@@ -37,6 +38,7 @@ export function CoverHero() {
           ))}
         </nav>
       </div>
+      <CoverSettingsButton />
       <CoverHelpButton />
     </section>
   );

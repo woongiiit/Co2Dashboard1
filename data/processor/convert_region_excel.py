@@ -6,7 +6,7 @@
   pip install -r data/processor/requirements.txt
   python data/processor/convert_region_excel.py
 
-기본 입력: data/excel/region/■중요■CARD_최종(260719).xlsx
+기본 입력: data/excel/region/[최종]CARD_final.xlsx
 기본 출력: data/excel/region/region-dashboard.json
 
 JSON carbonRaw·industries 값은 tCO₂eq 단위로 저장합니다 (formatVersion 2).
@@ -30,7 +30,7 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[2]
 REGION_DIR = ROOT / "data" / "excel" / "region"
 DEFAULT_OUTPUT = REGION_DIR / "region-dashboard.json"
-PREFERRED_SOURCE = "■중요■CARD_최종(260719).xlsx"
+PREFERRED_SOURCE = "[최종]CARD_final.xlsx"
 
 CARBON_HEADERS = ("탄소배출량 ", "탄소배출량")
 INDEX_HEADER = "탄소발자국 지수"

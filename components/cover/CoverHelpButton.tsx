@@ -62,7 +62,7 @@ const DATA_SCOPE = [
   { label: "기간", value: "2023.01 ~ 2026.04" },
   { label: "지역", value: "250개 시군구" },
   { label: "업종", value: "6대분류·22중분류" },
-  { label: "버전", value: "CARD_최종 260719" },
+  { label: "버전", value: "CARD_final" },
 ] as const;
 
 const FAQ_ITEMS = [
