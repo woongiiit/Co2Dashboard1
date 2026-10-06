@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "data:convert": "python data/processor/convert_region_excel.py",
-    "data:validate": "python data/processor/validate_region_json.py"
+    "data:validate": "python data/processor/validate_region_json.py",
+    "desktop:exe": "node scripts/desktop/build-exe.mjs"
   },
   "dependencies": {
     "echarts": "^6.1.0",

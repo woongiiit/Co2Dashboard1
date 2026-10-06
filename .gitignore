@@ -39,6 +39,15 @@ yarn-error.log*
 # local runtime secrets (환경 설정 모달 저장값 — 공유 zip에 포함하지 않음)
 /data/runtime/
 
+# Windows 원클릭 EXE 빌드 산출물
+/desktop/payload/
+/desktop/payload.zip
+/desktop/publish/
+/desktop/.cache/
+/desktop/Launcher/payload.zip
+/desktop/Launcher/payload.version
+/release/
+
 # vercel / tooling
 .vercel
 
